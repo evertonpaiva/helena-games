@@ -60,14 +60,17 @@ Natal, Páscoa, Dia do Meio Ambiente, Carnaval e Festa Junina; os temas podem se
    Animações de bob desaceleradas. Save v2 (migra o v1).
 10. **Rodada 10 — mecânicas:** vender defesa, velocidade 1×/2×/3×, prévia de alcance,
    habilidades ativas, dificuldades, estrelas por tema, inimigos voadores (`air`),
-   segunda rota (`PATH_B`, turno 4+), conquistas e salvamento da partida
+   conquistas e salvamento da partida
    (`GAME_SAVE_KEY`). Equilíbrio ainda não validado em partidas completas.
 
 11. **Rodada 11 — temas Carnaval e Festa Junina:** entradas em `THEME_DEFS`, céus em `buildSky`, perfis em `audio.js`, estilos `body[data-theme=...]`. Páscoa e Meio Ambiente foram diferenciados por cor. Mecânicas exclusivas por tema (ex.: chuva reduzindo fogo) ficam como ideia futura.
+12. **Rodada 12 — splash e layout:** toast substituído por splash (`queueSplash`/`flushSplash`) com nova defesa, pesquisa e conquistas ao fim do turno; tabuleiro 12×8; `@media (max-height:520px) and (orientation:landscape)` com dock baixa; save guarda `cols`/`rows`.
 
 Ao retomar o trabalho em outra máquina ou sessão, leia este arquivo e o
 `README.md` na raiz do projeto. Preserve as decisões registradas e atualize o
 estado desta sequência ao concluir ou alterar uma etapa.
+13. **Rodada 13:** removida a segunda rota (`PATH_B`); clicar numa casa livre abre menu de construção (`openBuildMenu`).
+14. **Rodada 14:** pedras podem ser explodidas (40 moedas, som `explosion`); versão v1.0 no rodapé; botão de compartilhar resultado/ranking na tela de vitória.
 
 ## Regras provisórias da primeira fase
 
@@ -93,7 +96,7 @@ estado desta sequência ao concluir ou alterar uma etapa.
 
 6. **Rodada tabuleiro/loja/pesquisa/tema Meio Ambiente — aguardando validação:**
    - Título "Tower Defense - Datas Comemorativas".
-   - Tabuleiro 16×10 (`COLUMNS`/`ROWS`), rota com 4–6 curvas e 22–46 casas; `placeRocks()` sorteia `ROCK_COUNT` pedras ao lado do caminho (`rockSet`), que bloqueiam construção.
+   - Tabuleiro 12×8 (`COLUMNS`/`ROWS`), rota com 3–5 curvas (A 18–36 casas, B 14–28, união ≤44); `placeRocks()` sorteia `ROCK_COUNT` pedras ao lado do caminho (`rockSet`), que bloqueiam construção.
    - Loja movida para barra fixa (`.shop-dock`) abaixo do mapa, com os botões de turno/pausa/reparo/reiniciar.
    - Liberação gradual: `START_TOWERS = 2` e `UNLOCK_ORDER`; nova defesa por turno concluído, anunciada em `concludeWave`.
    - Reparo individual: clicar na defesa abre o inspetor (`renderInspector`/`repairTower`); só entre turnos.

@@ -379,7 +379,7 @@ h2 {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(16, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-auto-rows: auto;
   align-items: start;
   gap: 6px;
@@ -2416,7 +2416,6 @@ body[data-theme="ambiente"] footer { color: #ffffffcc; }
 }
 
 /* ===== Rodada 10: novas mecânicas ===== */
-.tile.path-reserve { opacity: .55; filter: saturate(.5); outline: 1px dashed rgba(255, 255, 255, .35); outline-offset: -3px; }
 .tile.in-range { outline: 2px solid rgba(255, 226, 122, .9); outline-offset: -3px; box-shadow: inset 0 0 14px rgba(255, 226, 122, .45); }
 .tile.range-origin.in-range { outline-color: #fff; box-shadow: inset 0 0 20px rgba(255, 255, 255, .6); }
 .enemy-entity.enemy-flying { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: grid; place-items: center; }
@@ -2435,9 +2434,6 @@ body[data-theme="ambiente"] footer { color: #ffffffcc; }
 .difficulty-picker button.is-active { background: var(--accent, #ff9a3c); color: #1b1020; font-weight: 800; border-color: transparent; }
 .theme-stars { margin-left: 6px; color: #ffd24a; letter-spacing: 1px; }
 .congrats-stars { margin: 0 0 6px; font-size: 2rem; color: #ffd24a; letter-spacing: 4px; }
-.toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 90; display: grid; gap: 8px; pointer-events: none; }
-.toast-item { padding: 10px 18px; border-radius: 12px; background: #2b1d3e; color: #ffe27a; border: 1px solid #ffd24a; font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); animation: toast-in .3s ease-out; }
-@keyframes toast-in { from { opacity: 0; transform: translateY(-12px); } }
 .achievement-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; text-align: left; max-height: 55vh; overflow: auto; }
 .achievement { display: flex; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .06); opacity: .6; }
 .achievement.is-done { opacity: 1; background: rgba(255, 210, 74, .14); }
@@ -2448,7 +2444,6 @@ body[data-theme="ambiente"] footer { color: #ffffffcc; }
   .ability-bar { margin-bottom: 4px; gap: 4px; }
   .ability-bar button { min-height: 34px; font-size: .8rem; flex-basis: 30%; }
   .ability-bar kbd { display: none; }
-  .toast { top: 8px; width: calc(100% - 20px); }
 }
 
 /* ===== Tema Carnaval ===== */
@@ -2572,3 +2567,67 @@ body[data-theme="junina"] .mist { background: radial-gradient(ellipse at 50% 100
 body[data-theme="junina"] .moon { filter: drop-shadow(0 0 24px #ffe9a0cc); }
 body[data-theme="junina"] .legend-path { background: #b94a2c; border-color: #f2a06a; }
 body[data-theme="junina"] footer { color: #ffffffcc; }
+
+/* ===== Splash de novidades (fim de turno) ===== */
+.splash-card { max-width: 480px; text-align: left; }
+.splash-card h2 { text-align: center; }
+.splash-section { margin: 12px 0; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .07); animation: splash-pop .4s ease-out both; }
+.splash-section:nth-child(2) { animation-delay: .12s; }
+.splash-section:nth-child(3) { animation-delay: .24s; }
+.splash-section h3 { margin: 0 0 8px; font-size: 15px; color: var(--accent-bright, #ffe27a); }
+.splash-section ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.splash-section li { display: flex; gap: 12px; align-items: center; }
+.splash-emoji { font-size: 2rem; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .45)); }
+.splash-section small { display: block; opacity: .85; font-size: 12px; }
+@keyframes splash-pop { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .splash-section { animation: none; } }
+
+/* Tabuleiro 12 x 8: limita a largura no desktop */
+.board-frame { max-width: 860px; margin-inline: auto; }
+
+/* Celular na horizontal: tabuleiro cabe na altura da tela e a loja vira uma faixa baixa */
+@media (max-height: 520px) and (orientation: landscape) {
+  .app-shell { width: min(100% - 12px, 1100px); }
+  .board-panel { padding: 4px 8px; }
+  .board-heading { margin-bottom: 2px; }
+  .board-heading .eyebrow { display: none; }
+  .board-heading h2 { font-size: 13px; }
+  .board-heading .wave-counter, .board-heading [id="wave-counter"] { padding: 2px 8px; font-size: 11px; }
+  .board-frame { max-width: calc((100vh - 118px) * 1.45); padding: 3px; }
+  .board-stage { margin: 0; transform: none; }
+  .board { gap: 1px; }
+  .tile { font-size: clamp(9px, calc((100vh - 118px) * .1), 17px); line-height: 1; }
+  .tile-emoji { line-height: 1; }
+  .tower-tile .tile-emoji, .enemy-entity .tile-emoji { margin-bottom: 8%; }
+  .board-legend, .game-message { display: none; }
+  .shop-dock { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; margin: 3px -4px -4px; padding: 3px 8px calc(3px + env(safe-area-inset-bottom)); border-radius: 10px 10px 0 0; }
+  .dock-header { display: contents; }
+  .dock-header h2, .dock-header .shop-hint { display: none; }
+  .shop-dock .shop-items { flex: 1 1 0; min-width: 0; display: flex; overflow-x: auto; gap: 4px; scrollbar-width: none; }
+  .shop-dock .shop-items::-webkit-scrollbar { display: none; }
+  .shop-dock .shop-item { flex: 0 0 46px; flex-direction: column; padding: 2px 0; gap: 0; }
+  .shop-dock .shop-emoji { width: 22px; height: 22px; font-size: 14px; }
+  .shop-dock .shop-copy { display: none; }
+  .shop-dock .shop-price { font-size: 9px; }
+  .shop-dock .shop-actions { display: flex; flex: 0 0 auto; margin: 0; gap: 4px; }
+  .shop-dock .primary-button { grid-column: auto; min-height: 28px; padding: 3px 10px; font-size: 11px; }
+  .shop-dock .repair-button, .shop-dock .pause-button, .shop-dock .text-button { padding: 3px 8px; font-size: 10px; }
+  .tower-inspector, .ability-bar { flex: 1 1 100%; margin: 0; }
+  .ability-bar button { min-height: 26px; font-size: .7rem; }
+}
+
+.build-menu { position: fixed; z-index: 40; display: grid; grid-template-columns: repeat(3, minmax(74px, 1fr)); gap: 4px; max-width: min(300px, calc(100vw - 12px)); padding: 6px; border: 1px solid #ffbd70; border-radius: 12px; background: #1d1530f2; box-shadow: 0 10px 28px #000a; }
+.build-menu[hidden] { display: none; }
+.build-option { display: grid; justify-items: center; gap: 0; padding: 4px 2px; border: 1px solid #ffffff22; border-radius: 8px; background: #ffffff0d; color: inherit; font: inherit; cursor: pointer; }
+.build-option:hover:not(:disabled), .build-option:focus-visible { border-color: #ffbd70; background: #ffbd7026; }
+.build-option:disabled { opacity: .4; cursor: not-allowed; }
+.build-emoji { font-size: 20px; line-height: 1.2; }
+.build-name { font-size: 10px; }
+.build-price { font-size: 10px; color: #ffd19d; }
+
+.build-menu.is-rock { grid-template-columns: minmax(96px, 1fr); }
+.build-blast { border-color: #ff9a4d88; }
+.build-blast .build-emoji { font-size: 24px; }
+.game-version { margin: 0; color: #b8a8d4; font-size: 11px; letter-spacing: .04em; }
+.congrats-rank { margin: 0 0 8px; color: #ffd34d; font-weight: 800; }
+#congrats-share, .share-button { margin: 6px 0 8px; background: linear-gradient(135deg, #5bb8ff, #7a6bff); }

@@ -78,7 +78,10 @@ escaparam, o percentual de progresso da onda e a quantidade do turno seguinte.
 - **Dificuldade:** Fácil (700 moedas/20 vidas), Normal (550/15), Difícil (450/10, inimigos +25% vida e dano).
 - **Estrelas por tema:** ★★★ com ≥80% das vidas, ★★ com ≥40%, ★ no restante; melhor resultado salvo.
 - **Inimigos voadores** (a partir do turno 5): voam em linha reta e só são atingidos por defesas com `air: true` (morcego, gato, bruxa, caçador).
-- **Segunda rota** (a partir do turno 4): `PATH_B`, mostrada esmaecida antes de ativar; invasores alternam entre as rotas.
+- **Rota única:** a segunda rota (antiga `PATH_B`) foi removida por ser confusa; voadores seguem a linha reta `SKY`.
+- **Explodir pedras:** clicar numa pedra oferece "💥 Explodir pedra" por 40 moedas (`ROCK_BLAST_COST`), com efeito sonoro `explosion`; o espaço fica livre.
+- **Compartilhar:** os botões "📤 Compartilhar conquistas" (painel 🏆 Conquistas e tela de vitória) geram um cartão PNG 1080×1350 via canvas (`renderShareImage`: ranking por estrelas — Aprendiz Corajoso / Defensor Valente / Guardião Lendário —, temas, conquistas e link) e o enviam pelo compartilhamento nativo do navegador (Web Share com arquivo). Sem suporte, baixa o PNG e copia o texto. O rodapé mostra a versão (v1.0).
+- **Construção direta:** clicar numa casa livre abre um menu com as defesas liberadas (`#build-menu`); a loja continua funcionando.
 - **Conquistas** 🏆 (12, botão no cabeçalho) e **salvar partida** automático entre turnos (chave `tower-defense-feriados-game-v1`, apagada em vitória/derrota e restaurada ao abrir o site).
 
 ### Defesas, invasores e ataques às defesas
@@ -107,7 +110,10 @@ escaparam, o percentual de progresso da onda e a quantidade do turno seguinte.
   para ganhar moedas antes que sumam (cerca de 6 s).
 - **Volume:** controle no cabeçalho (padrão 80%, bem mais alto que antes); o
   valor fica salvo no navegador. Música e efeitos continuam com botões próprios.
-- **Tabuleiro maior:** 16 × 10 casas (antes 12 × 8) e página mais larga (até 1400 px).
+- **Tabuleiro:** 12 × 8 casas (reduzido na rodada 12 para facilitar o mobile), com rota de 3–5 curvas e 8 pedras.
+- **Splash de novidades:** ao fim de cada turno aparece uma janela com a nova defesa liberada, a pesquisa realizada e as conquistas alcançadas.
+- **Layout paisagem no celular:** cabeçalho compacto, tabuleiro sem inclinação e loja em faixa baixa (só emoji + preço).
+- Jogos salvos de versões anteriores (outra geometria de tabuleiro) são descartados.
 - **Pedras:** 10 pedras 🪨 sorteadas em casas vizinhas ao caminho (inclusive diagonais) a cada partida/reinício; bloqueiam a construção e não recebem bônus nem decoração.
 - **Loja junto ao mapa:** a loja de defesas e os botões de turno/pausa/reparo/reiniciar ficam numa barra logo abaixo do tabuleiro, fixa (sticky) na tela enquanto se rola a página. Cada defesa mostra emoji, nome, vida, dano e preço; passe o mouse para ver a descrição.
 - **Liberação gradual de defesas:** o turno 1 de cada mapa começa com apenas 2 defesas (Lanterna e Caldeirão); uma nova é liberada a cada turno concluído (ordem: Morcego, Vela benta, Gato mágico, Cristal gélido, Caçador, Lápide, Bruxa; todas disponíveis no turno 8). A nova defesa é anunciada no banner e na mensagem de fim de turno. Defesas bloqueadas aparecem com 🔒 e o turno de liberação.
@@ -121,8 +127,8 @@ escaparam, o percentual de progresso da onda e a quantidade do turno seguinte.
 - **Compras durante o turno:** defesas podem ser compradas e posicionadas a
   qualquer momento, inclusive com os invasores em campo (reparo continua só
   entre turnos). Começa-se com 550 moedas.
-- **Vozes dos invasores:** cada tipo tem som próprio de entrada (60% de chance)
-  e de destruição (75%), para variar sem poluir o áudio.
+- **Vozes dos invasores:** cada tipo tem som próprio de entrada e de
+  destruição, tocado sempre (sem sorteio nem limite de intervalo).
 - **Rota aleatória:** o caminho dos invasores é gerado ao abrir o jogo e a
   cada reinício (trechos em escada, 17 a 32 casas, sempre de uma borda à outra
   e sem trechos encostando uns nos outros). A decoração também muda.

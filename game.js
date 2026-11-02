@@ -1,6 +1,6 @@
-const COLUMNS = 16;
-const ROWS = 10;
-const ROCK_COUNT = 10;
+const COLUMNS = 12;
+const ROWS = 8;
+const ROCK_COUNT = 8;
 const START_TOWERS = 2;
 const UNLOCK_ORDER = ["lantern", "cauldron", "bat", "candle", "cat", "crystal", "hunter", "tombstone", "witch"];
 const RESEARCH_MAX_LEVEL = 3;
@@ -9,8 +9,10 @@ const TOTAL_WAVES = 10;
 const TICK_MS = 625;
 const levelOf = (wave) => (wave - 1) * 2 + 1;
 const SELL_RATE = 0.6;
-const ROUTE_B_FROM_WAVE = 4;
 const SPEEDS = [1, 2, 3];
+const ROCK_BLAST_COST = 40;
+const RANKS = { 3: "Guardião Lendário", 2: "Defensor Valente", 1: "Aprendiz Corajoso" };
+const GAME_URL = "https://evertonpaiva.github.io/helena-games/";
 const DIFFICULTIES = {
   easy: { name: "Fácil", icon: "🌱", coins: 700, lives: 20, hp: 0.8, dmg: 0.8 },
   normal: { name: "Normal", icon: "⚔️", coins: 550, lives: 15, hp: 1, dmg: 1 },
@@ -36,7 +38,6 @@ const ACHIEVEMENTS = [
   { id: "wall", icon: "🧱", name: "Muralha", desc: "Conclua um turno a partir do 5º sem perder nenhuma defesa." },
 ];
 const GAME_SAVE_KEY = "tower-defense-feriados-game-v1";
-const VOICE_CHANCE = { spawn: 0.6, death: 0.75 };
 const REPAIR_COST_PER_HP = 0.5;
 const SAVE_KEY = "tower-defense-feriados-save-v2";
 const LEGACY_SAVE_KEY = "tower-defense-feriados-save-v1";
@@ -333,7 +334,6 @@ const THEME_KEYS = Object.keys(THEME_DEFS);
 let currentTheme = "halloween";
 
 const PATH = [];
-const PATH_B = [];
 const SKY = [];
 const pathSet = new Set();
 const rockSet = new Set();
@@ -346,7 +346,7 @@ function buildRoute() {
   const cells = [];
   let row = randomInt(1, ROWS - 2);
   let column = 0;
-  const turns = randomInt(4, 6);
+  const turns = randomInt(3, 5);
   const stops = [];
   let cursor = 1;
   for (let index = 0; index < turns; index += 1) {
@@ -370,28 +370,15 @@ function buildRoute() {
 
 function rebuildPathSet() {
   pathSet.clear();
-  for (const cell of [...PATH, ...PATH_B]) pathSet.add(cell);
+  for (const cell of PATH) pathSet.add(cell);
 }
 
-// Rota principal (A) + segunda rota (B, ativa a partir do turno ROUTE_B_FROM_WAVE) que pode
-// cruzar a primeira; voadores seguem uma linha reta (SKY) por cima de tudo.
+// Rota única; voadores seguem uma linha reta (SKY) por cima de tudo.
 function generatePath() {
   const previous = PATH.join(",");
   let route;
-  do route = buildRoute(); while (route.length < 22 || route.length > 46 || route.join(",") === previous);
-  const rowOf = (cell) => Math.floor(cell / COLUMNS);
-  let second;
-  let attempts = 0;
-  do {
-    second = buildRoute();
-    attempts += 1;
-  } while (attempts < 3000 && (
-    second.length < 18 || second.length > 34 ||
-    Math.abs(rowOf(second[0]) - rowOf(route[0])) < 3 ||
-    new Set([...route, ...second]).size > 56
-  ));
+  do route = buildRoute(); while (route.length < 18 || route.length > 36 || route.join(",") === previous);
   PATH.splice(0, PATH.length, ...route);
-  PATH_B.splice(0, PATH_B.length, ...second);
   const skyRow = Math.floor(Math.random() * ROWS);
   SKY.splice(0, SKY.length, ...Array.from({ length: COLUMNS }, (_, column) => skyRow * COLUMNS + column));
   rebuildPathSet();
@@ -469,7 +456,10 @@ const shopItemsElement = document.querySelector("#shop-items");
 const researchListElement = document.querySelector("#research-list");
 const abilityBar = document.querySelector("#ability-bar");
 const speedButton = document.querySelector("#speed-button");
-const toastElement = document.querySelector("#toast");
+const splashOverlay = document.querySelector("#splash");
+const splashSections = [];
+const splashShown = [];
+const splashAchievements = [];
 const inspectorElement = document.querySelector("#tower-inspector");
 let researchSignature = "";
 const repairButton = document.querySelector("#repair-button");
@@ -483,7 +473,6 @@ let gameSpeed = 1;
 let hoverCell = null;
 
 const cellOf = (enemy) => enemy.route[enemy.pathIndex];
-const routeBActive = (wave) => wave >= ROUTE_B_FROM_WAVE;
 const rangeOf = (tower) => tower.range || tower.heal?.range || 0;
 
 function waveSize(wave) {
@@ -704,10 +693,8 @@ function renderBoard() {
     group.push(enemy);
     store.set(cellOf(enemy), group);
   }
-  const starts = new Set([PATH[0], PATH_B[0]]);
-  const ends = new Set([PATH.at(-1), PATH_B.at(-1)]);
-  const reserve = !routeBActive(upcomingWave());
-  const mainSet = new Set(PATH);
+  const start = PATH[0];
+  const end = PATH.at(-1);
   const towerAt = new Map(game.towers.map((tower) => [tower.cell, tower]));
   const bonusAt = new Map(game.bonuses.map((bonus) => [bonus.cell, bonus]));
 
@@ -718,7 +705,6 @@ function renderBoard() {
     const isRock = rockSet.has(cell);
     const classes = ["tile"];
     if (isPath) classes.push("path");
-    if (isPath && reserve && !mainSet.has(cell)) classes.push("path-reserve");
     if (isRock) classes.push("rock-tile");
     if (tower && game.inspected === cell) classes.push("inspected");
     if (tower) classes.push("tower-tile");
@@ -744,7 +730,7 @@ function renderBoard() {
         : isRock
           ? `<span class="rock-item" aria-hidden="true">🪨</span>`
           : isPath
-          ? `<span class="tile-emoji path-marker" aria-hidden="true">${starts.has(cell) ? "🚪" : ends.has(cell) ? "🕸️" : ""}</span>`
+          ? `<span class="tile-emoji path-marker" aria-hidden="true">${cell === start ? "🚪" : cell === end ? "🕸️" : ""}</span>`
           : decor
             ? `<span class="decor decor-${decorKind(decor)}" aria-hidden="true">${decor}</span>`
             : bonus
@@ -1179,17 +1165,35 @@ function unlockAchievement(id) {
   if (!item) return;
   progress.achievements[id] = true;
   saveProgress();
-  showToast(`${item.icon} Conquista desbloqueada: ${item.name}!`);
-  GameAudio.play("bonus");
+  splashAchievements.push({ emoji: item.icon, name: item.name, desc: item.desc });
   renderAchievements();
+  // Durante o turno as conquistas esperam o fim dele para aparecer no splash.
+  if (!game || game.phase !== "wave") window.setTimeout(flushSplash, 0);
 }
 
-function showToast(text) {
-  const toast = document.createElement("div");
-  toast.className = "toast-item";
-  toast.textContent = text;
-  toastElement.append(toast);
-  window.setTimeout(() => toast.remove(), 4500);
+function queueSplash(section) {
+  if (section.items.length) splashSections.push(section);
+}
+
+function flushSplash() {
+  if (splashAchievements.length) {
+    queueSplash({ icon: "🏆", title: "Conquista alcançada!", items: splashAchievements.splice(0) });
+  }
+  if (!splashSections.length) return;
+  splashShown.push(...splashSections.splice(0));
+  document.querySelector("#splash-body").innerHTML = splashShown.map((section) => `
+    <section class="splash-section">
+      <h3>${section.icon} ${section.title}</h3>
+      <ul>${section.items.map((item) => `<li><span class="splash-emoji">${item.emoji}</span><span><strong>${item.name}</strong><small>${item.desc}</small></span></li>`).join("")}</ul>
+    </section>`).join("");
+  splashOverlay.hidden = false;
+  GameAudio.play("bonus");
+  document.querySelector("#splash-close").focus();
+}
+
+function closeSplash() {
+  splashOverlay.hidden = true;
+  splashShown.length = 0;
 }
 
 function renderAchievements() {
@@ -1306,10 +1310,11 @@ function persistGame() {
     if (game.phase === "wave") return;
     localStorage.setItem(GAME_SAVE_KEY, JSON.stringify({
       v: 1,
+      cols: COLUMNS,
+      rows: ROWS,
       theme: currentTheme,
       difficulty: progress.difficulty,
       path: PATH,
-      pathB: PATH_B,
       sky: SKY,
       rocks: [...rockSet],
       mapSeed,
@@ -1336,8 +1341,8 @@ function restoreGame() {
     const data = JSON.parse(raw);
     const cells = COLUMNS * ROWS;
     const validCells = (list, min = 0) => Array.isArray(list) && list.length >= min && list.every((cell) => Number.isInteger(cell) && cell >= 0 && cell < cells);
-    if (data.v !== 1 || !THEME_KEYS.includes(data.theme) || !DIFFICULTIES[data.difficulty]) return false;
-    if (!validCells(data.path, 2) || !validCells(data.pathB, 2) || !validCells(data.sky, 2) || !validCells(data.rocks)) return false;
+    if (data.v !== 1 || data.cols !== COLUMNS || data.rows !== ROWS || !THEME_KEYS.includes(data.theme) || !DIFFICULTIES[data.difficulty]) return false;
+    if (!validCells(data.path, 2) || !validCells(data.sky, 2) || !validCells(data.rocks)) return false;
     if (!Number.isInteger(data.wave) || data.wave < 0 || data.wave >= TOTAL_WAVES) return false;
     if (!["preparation", "intermission"].includes(data.phase)) return false;
     if (![data.coins, data.lives, data.maxLives].every(Number.isFinite)) return false;
@@ -1348,7 +1353,6 @@ function restoreGame() {
     }
     progress.difficulty = data.difficulty;
     PATH.splice(0, PATH.length, ...data.path);
-    PATH_B.splice(0, PATH_B.length, ...data.pathB);
     SKY.splice(0, SKY.length, ...data.sky);
     rebuildPathSet();
     rockSet.clear();
@@ -1490,6 +1494,53 @@ function selectTower(type) {
   render();
 }
 
+const buildMenu = document.querySelector("#build-menu");
+
+function closeBuildMenu() {
+  buildMenu.hidden = true;
+}
+
+// Menu rápido: clicar numa casa livre lista as defesas disponíveis para construir ali.
+function openBuildMenu(cell) {
+  const isRock = rockSet.has(cell);
+  if (pathSet.has(cell)) { closeBuildMenu(); return; }
+  const tile = board.querySelector(`[data-cell="${cell}"]`);
+  if (!tile) return;
+  buildMenu.innerHTML = isRock
+    ? `<button type="button" class="build-option build-blast" data-blast="1" ${game.coins < ROCK_BLAST_COST ? "disabled" : ""}><span class="build-emoji">💥</span><span class="build-name">Explodir pedra</span><span class="build-price">${ROCK_BLAST_COST} 🪙</span></button>`
+    : UNLOCK_ORDER.filter(isUnlocked).map((type) => {
+      const tower = TOWERS[type];
+      return `<button type="button" class="build-option" data-build="${type}" ${game.coins < tower.price ? "disabled" : ""}><span class="build-emoji">${tower.emoji}</span><span class="build-name">${tower.name}</span><span class="build-price">${tower.price} 🪙</span></button>`;
+    }).join("");
+  buildMenu.classList.toggle("is-rock", isRock);
+  buildMenu.dataset.cell = String(cell);
+  buildMenu.hidden = false;
+  GameAudio.play("select");
+  const rect = tile.getBoundingClientRect();
+  const menu = buildMenu.getBoundingClientRect();
+  const left = Math.min(Math.max(6, rect.left + rect.width / 2 - menu.width / 2), window.innerWidth - menu.width - 6);
+  const below = rect.bottom + 6 + menu.height <= window.innerHeight;
+  const top = below ? rect.bottom + 6 : Math.max(6, rect.top - menu.height - 6);
+  buildMenu.style.left = `${left}px`;
+  buildMenu.style.top = `${top}px`;
+}
+
+function blastRock(cell) {
+  if (!rockSet.has(cell) || game.phase === "victory" || game.phase === "defeat") return;
+  if (game.coins < ROCK_BLAST_COST) {
+    GameAudio.play("error");
+    setMessage(`Você precisa de ${ROCK_BLAST_COST} moedas para explodir a pedra.`);
+    return;
+  }
+  game.coins -= ROCK_BLAST_COST;
+  rockSet.delete(cell);
+  game.message = `💥 Pedra explodida por ${ROCK_BLAST_COST} moedas! O espaço está livre para construir.`;
+  GameAudio.play("explosion");
+  render();
+  showDestruction(cell, "💥", true);
+  showImpact(cell, "#ffb347", 2.2);
+}
+
 function placeTower(cell) {
   if (game.phase === "victory" || game.phase === "defeat") return;
   const existing = game.towers.find((tower) => tower.cell === cell);
@@ -1498,12 +1549,12 @@ function placeTower(cell) {
       game.inspected = game.inspected === cell ? null : cell;
       GameAudio.play("select");
       render();
-    }
+    } else openBuildMenu(cell);
     return;
   }
+  closeBuildMenu();
   if (rockSet.has(cell)) {
-    GameAudio.play("error");
-    setMessage("Há uma pedra neste espaço: não é possível construir aqui.");
+    openBuildMenu(cell);
     return;
   }
   if (pathSet.has(cell)) {
@@ -1559,7 +1610,6 @@ function beginWave() {
   game.abilityCd = {};
   game.abilitiesUsed = [];
   game.spawned = 0;
-  if (routeBActive(game.wave)) game.message += " 🔀 Invasores também chegam pela segunda rota!";
   render();
   startLoop();
 }
@@ -1579,11 +1629,9 @@ function cycleSpeed() {
 function spawnEnemy() {
   const type = game.queue.shift();
   const config = ENEMIES[type];
-  if (Math.random() < VOICE_CHANCE.spawn) GameAudio.play("enemySpawn", type);
+  GameAudio.play("enemySpawn", type);
   const maxHp = Math.round((30 + levelOf(game.wave) * 8) * config.hp * DIFFICULTIES[progress.difficulty].hp);
-  let route = PATH;
-  if (config.flying) route = SKY;
-  else if (routeBActive(game.wave) && game.spawned % 2 === 1) route = PATH_B;
+  const route = config.flying ? SKY : PATH;
   game.spawned += 1;
   game.enemies.push({
     id: String(++nextEnemyId),
@@ -1773,7 +1821,7 @@ function collectDefeated() {
       if (enemy.flying) progress.stats.flyers += 1;
       addCombatEffect({ type: "destroyed", cell: cellOf(enemy), emoji: enemy.emoji });
       GameAudio.play("destroyed", null, 0.24);
-      if (Math.random() < VOICE_CHANCE.death) GameAudio.play("enemyDeath", enemy.type, 0.3);
+      GameAudio.play("enemyDeath", enemy.type, 0.3);
     } else {
       survivors.push(enemy);
     }
@@ -1935,9 +1983,9 @@ function concludeWave(won) {
     game.message = `Fase ${name} concluída! Escolha outro tema quando quiser.`;
     GameAudio.play("victory");
     showWaveBanner("Fase concluída!", `${name} · escolha outro tema`, "is-victory");
-    showCongrats(name, stars);
     progress.completed[currentTheme] = true;
     const stars = starsFor(game.lives, game.maxLives);
+    showCongrats(name, stars);
     progress.stars[currentTheme] = Math.max(progress.stars[currentTheme] || 0, stars);
     unlockAchievement("first_win");
     if (THEME_KEYS.every((key) => progress.completed[key])) unlockAchievement("all_themes");
@@ -1953,10 +2001,19 @@ function concludeWave(won) {
     const unlockedType = UNLOCK_ORDER[START_TOWERS + game.wave - 1];
     const unlockText = unlockedType ? ` 🔓 Nova defesa liberada: ${TOWERS[unlockedType].emoji} ${TOWERS[unlockedType].name}!` : "";
     showWaveBanner(`Turno ${game.wave} concluído!`, `${game.defeated} derrotados · próximo: ${waveSize(game.wave + 1)} invasores${unlockedType ? ` · 🔓 Nova defesa: ${TOWERS[unlockedType].emoji} ${TOWERS[unlockedType].name}` : ""}`);
-    const routeText = game.wave + 1 === ROUTE_B_FROM_WAVE ? " 🔀 No próximo turno os invasores também usarão a segunda rota (esmaecida no mapa)." : "";
-    game.message = `Turno ${game.wave} concluído! O turno ${game.wave + 1} terá ${waveSize(game.wave + 1)} invasores.${unlockText}${routeText}${lost} Reforce a defesa.`;
+    game.message = `Turno ${game.wave} concluído! O turno ${game.wave + 1} terá ${waveSize(game.wave + 1)} invasores.${unlockText}${lost} Reforce a defesa.`;
     GameAudio.play("waveClear");
+    if (unlockedType) {
+      const tower = TOWERS[unlockedType];
+      queueSplash({ icon: "🔓", title: "Nova defesa liberada!", items: [{ emoji: tower.emoji, name: tower.name, desc: `${tower.blurb} · ❤ ${tower.hp}${tower.damage ? ` · ⚔ ${tower.damage}` : ""} · ${tower.price} 🪙${tower.air ? " · ✈ atinge voadores" : ""}` }] });
+    }
+    queueSplash({
+      icon: "🔬",
+      title: "Pesquisa realizada! Vale a partir do próximo turno",
+      items: Object.entries(game.pendingResearch).map(([type, level]) => ({ emoji: TOWERS[type].emoji, name: `${TOWERS[type].name} → nível ${level}`, desc: "Mais vida, dano e alcance nas defesas deste tipo." })),
+    });
   }
+  flushSplash();
 }
 
 function setPaused(paused) {
@@ -1978,11 +2035,186 @@ function showDefeat() {
   defeatOverlay.hidden = false;
 }
 
+let lastResult = null;
+
+function buildShareText(result) {
+  const done = ACHIEVEMENTS.filter((item) => progress.achievements[item.id]);
+  const themes = THEME_KEYS.filter((key) => progress.completed[key]);
+  const bestStars = Math.max(0, ...Object.values(progress.stars));
+  const lines = [`🎮 Tower Defense - Datas Comemorativas (Helena Games)`];
+  if (result) {
+    lines.push(
+      `🏆 Tema ${result.theme} concluído no modo ${result.difficulty}!`,
+      `${"★".repeat(result.stars)}${"☆".repeat(3 - result.stars)} Ranking: ${RANKS[result.stars]}`,
+      `❤️ ${result.lives} vida(s) · 🛡️ ${result.towers} defesa(s) · 🪙 ${result.coins} moedas`,
+    );
+  } else if (bestStars) {
+    lines.push(`Melhor ranking: ${"★".repeat(bestStars)}${"☆".repeat(3 - bestStars)} ${RANKS[bestStars]}`);
+  }
+  lines.push(
+    `🗺️ Temas concluídos: ${themes.length}/${THEME_KEYS.length}${themes.length ? ` (${themes.map((key) => `${THEME_DEFS[key].name}${progress.stars[key] ? " " + "★".repeat(progress.stars[key]) : ""}`).join(", ")})` : ""}`,
+    `🏅 Conquistas: ${done.length}/${ACHIEVEMENTS.length}${done.length ? ` (${done.map((item) => `${item.icon} ${item.name}`).join(", ")})` : ""}`,
+    `Jogue também: ${GAME_URL}`,
+  );
+  return lines.join("\n");
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Desenha o cartão de resultado (1080×1350) num canvas e devolve um PNG.
+function renderShareImage(result) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1350;
+  const ctx = canvas.getContext("2d");
+  const font = (size, weight = 700) => `${weight} ${size}px "Segoe UI", system-ui, "Noto Color Emoji", "Apple Color Emoji", sans-serif`;
+  const center = (text, y, size, color, weight) => {
+    ctx.font = font(size, weight);
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.fillText(text, 540, y);
+  };
+  const gradient = ctx.createLinearGradient(0, 0, 0, 1350);
+  gradient.addColorStop(0, "#2a1748");
+  gradient.addColorStop(1, "#0f0a1c");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.strokeStyle = "#ffbd70";
+  ctx.lineWidth = 6;
+  roundRect(ctx, 30, 30, 1020, 1290, 40);
+  ctx.stroke();
+
+  const done = ACHIEVEMENTS.filter((item) => progress.achievements[item.id]);
+  const themes = THEME_KEYS.filter((key) => progress.completed[key]);
+  const stars = result ? result.stars : Math.max(0, ...Object.values(progress.stars));
+
+  center("🎮 Helena Games", 120, 54, "#ffd19d", 800);
+  center("Tower Defense - Datas Comemorativas", 180, 36, "#ffffff", 700);
+  if (stars) {
+    center("★".repeat(stars) + "☆".repeat(3 - stars), 320, 130, "#ffd34d", 700);
+    center(RANKS[stars], 400, 62, "#ffffff", 800);
+  } else {
+    center("🏅", 320, 130, "#ffd34d", 700);
+    center("Aventureiro em treinamento", 400, 56, "#ffffff", 800);
+  }
+  if (result) {
+    center(`Tema ${result.theme} · modo ${result.difficulty}`, 470, 36, "#ffbd70", 700);
+    center(`❤️ ${result.lives} vidas   🛡️ ${result.towers} defesas   🪙 ${result.coins}`, 525, 34, "#e8dcff", 600);
+  }
+
+  center(`🗺️ Temas concluídos: ${themes.length}/${THEME_KEYS.length}`, 610, 38, "#ffd19d", 800);
+  const colWidth = 320;
+  THEME_KEYS.forEach((key, index) => {
+    const x = 45 + (index % 3) * colWidth;
+    const y = 640 + Math.floor(index / 3) * 90;
+    const got = progress.completed[key];
+    ctx.fillStyle = got ? "#ffbd7033" : "#ffffff10";
+    roundRect(ctx, x + 15, y, colWidth - 20, 76, 16);
+    ctx.fill();
+    ctx.globalAlpha = got ? 1 : 0.4;
+    ctx.textAlign = "left";
+    let size = 32;
+    const label = `${THEME_DEFS[key].icon} ${THEME_DEFS[key].name}`;
+    do { ctx.font = font(size, 700); size -= 2; } while (ctx.measureText(label).width > colWidth - 50 && size > 16);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(label, x + 30, y + 36);
+    ctx.font = font(26, 700);
+    ctx.fillStyle = "#ffd34d";
+    ctx.fillText(got ? "★".repeat(progress.stars[key] || 1) : "—", x + 30, y + 66);
+    ctx.globalAlpha = 1;
+  });
+
+  center(`🏅 Conquistas: ${done.length}/${ACHIEVEMENTS.length}`, 880, 38, "#ffd19d", 800);
+  ACHIEVEMENTS.forEach((item, index) => {
+    const x = 30 + (index % 4) * 255;
+    const y = 915 + Math.floor(index / 4) * 100;
+    const got = progress.achievements[item.id];
+    ctx.globalAlpha = got ? 1 : 0.3;
+    ctx.fillStyle = got ? "#ffbd7033" : "#ffffff10";
+    roundRect(ctx, x + 15, y, 230, 88, 16);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.font = font(34, 700);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(item.icon, x + 130, y + 40);
+    ctx.font = font(20, 700);
+    ctx.fillText(item.name.slice(0, 20), x + 130, y + 72);
+    ctx.globalAlpha = 1;
+  });
+
+  center("Jogue também:", 1265, 30, "#e8dcff", 600);
+  center("evertonpaiva.github.io/helena-games", 1305, 34, "#ffbd70", 800);
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+function downloadBlob(blob, name) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// Compartilha a imagem pelo mecanismo nativo do navegador (Web Share com arquivo);
+// sem suporte, baixa o PNG e copia o texto.
+async function shareImage(result, button) {
+  const original = button.dataset.label || (button.dataset.label = button.textContent);
+  const setLabel = (label) => {
+    button.textContent = label;
+    window.setTimeout(() => { button.textContent = original; }, 2500);
+  };
+  const text = buildShareText(result);
+  button.disabled = true;
+  try {
+    const blob = await renderShareImage(result);
+    const file = new File([blob], "helena-games-conquistas.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Helena Games", text });
+      return;
+    }
+    downloadBlob(blob, file.name);
+    if (navigator.clipboard) await navigator.clipboard.writeText(text).catch(() => {});
+    setLabel("✅ Imagem salva!");
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setLabel("✅ Texto copiado!");
+    } catch (inner) {
+      window.prompt("Copie o texto abaixo para compartilhar:", text);
+    }
+  } finally {
+    button.disabled = false;
+  }
+}
+
+const shareResult = () => lastResult && shareImage(lastResult, document.querySelector("#congrats-share"));
+const shareAchievements = () => shareImage(null, document.querySelector("#achievements-share"));
+
 function showCongrats(themeName, stars) {
+  lastResult = {
+    theme: themeName,
+    difficulty: DIFFICULTIES[progress.difficulty].name,
+    stars,
+    lives: game.lives,
+    towers: game.towers.length,
+    coins: game.coins,
+  };
   const overlay = document.querySelector("#congrats");
   const next = THEME_KEYS.filter((key) => !progress.completed[key] && key !== currentTheme);
   document.querySelector("#congrats-title").textContent = `Parabéns! Tema ${themeName} concluído!`;
   document.querySelector("#congrats-stars").textContent = `${"★".repeat(stars)}${"☆".repeat(3 - stars)}`;
+  document.querySelector("#congrats-rank").textContent = `Ranking: ${RANKS[stars]}`;
   document.querySelector("#congrats-text").textContent =
     `Você defendeu todos os ${TOTAL_WAVES} turnos com ${game.lives} vida(s) restante(s), ${game.towers.length} defesa(s) de pé e ${game.coins} moedas.` +
     (next.length ? ` Ainda faltam: ${next.map((key) => THEME_DEFS[key].name).join(" e ")}.` : " Você concluiu todos os temas da campanha — lenda das datas comemorativas! 🏆");
@@ -2049,6 +2281,24 @@ board.addEventListener("pointerdown", (event) => {
   if (bonus && collectBonus(bonus.dataset.bonusId)) event.preventDefault();
 });
 
+buildMenu.addEventListener("click", (event) => {
+  const cell = Number(buildMenu.dataset.cell);
+  if (event.target.closest("[data-blast]")) {
+    closeBuildMenu();
+    blastRock(cell);
+    return;
+  }
+  const option = event.target.closest("[data-build]");
+  if (!option) return;
+  closeBuildMenu();
+  game.selectedTower = option.dataset.build;
+  placeTower(cell);
+});
+document.addEventListener("pointerdown", (event) => {
+  if (!buildMenu.hidden && !event.target.closest("#build-menu") && !event.target.closest("[data-cell]")) closeBuildMenu();
+});
+window.addEventListener("scroll", closeBuildMenu, { passive: true });
+window.addEventListener("resize", closeBuildMenu);
 board.addEventListener("click", (event) => {
   const tile = event.target.closest("[data-cell]");
   if (!tile) return;
@@ -2085,6 +2335,7 @@ board.addEventListener("mouseleave", () => {
 });
 const achievementsOverlay = document.querySelector("#achievements");
 document.querySelector("#achievements-button").addEventListener("click", () => { achievementsOverlay.hidden = false; });
+document.querySelector("#splash-close").addEventListener("click", closeSplash);
 document.querySelector("#achievements-close").addEventListener("click", () => { achievementsOverlay.hidden = true; });
 document.querySelector(".difficulty-picker").addEventListener("click", (event) => {
   const button = event.target.closest("[data-difficulty]");
@@ -2098,6 +2349,8 @@ researchListElement.addEventListener("click", (event) => {
   const button = event.target.closest("[data-research]");
   if (button) researchTower(button.dataset.research);
 });
+document.querySelector("#congrats-share").addEventListener("click", shareResult);
+document.querySelector("#achievements-share").addEventListener("click", shareAchievements);
 document.querySelector("#congrats-close").addEventListener("click", () => { document.querySelector("#congrats").hidden = true; });
 turnButton.addEventListener("click", requestWave);
 pauseButton.addEventListener("click", () => setPaused(!game.paused));
@@ -2129,7 +2382,9 @@ document.querySelector("#tutorial-button").addEventListener("click", openTutoria
 document.querySelector("#tutorial-close").addEventListener("click", closeTutorial);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (!buildMenu.hidden) { closeBuildMenu(); return; }
     if (!achievementsOverlay.hidden) achievementsOverlay.hidden = true;
+    else if (!splashOverlay.hidden) closeSplash();
     else if (!tutorialOverlay.hidden) closeTutorial();
     else if (game.selectedTower) cancelSelection();
     else if (game.inspected !== null) {

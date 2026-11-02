@@ -172,6 +172,7 @@
       <footer>
         <img class="studio-logo" src="logo-helena-games.svg" alt="Helena Games" width="270" height="86">
         <p>Produzido por <strong>Helena Games</strong> · Uma aventura local · Os temas concluídos ficam salvos neste navegador.</p>
+        <p class="game-version">Versão v1.0</p>
       </footer>
     </main>
     <div class="congrats defeat-overlay" id="defeat" role="dialog" aria-modal="true" aria-labelledby="defeat-title" hidden>
@@ -187,14 +188,13 @@
         <h2 id="tutorial-title">Como jogar</h2>
         <ol class="tutorial-steps">
           <li><strong>Objetivo:</strong> impeça que os invasores atravessem o caminho. Cada um que escapa custa uma vida ❤️; sobreviva a todos os 10 turnos.</li>
-          <li><strong>Posicione defesas:</strong> escolha uma na loja abaixo do mapa e clique em um espaço livre (não vale caminho nem pedras 🪨). Para desistir, use <kbd>Esc</kbd> ou o botão Cancelar.</li>
+          <li><strong>Posicione defesas:</strong> escolha uma na loja e clique em um espaço livre, ou clique direto num espaço livre do mapa e escolha a defesa no menu que aparece (não vale caminho). Pedras 🪨 podem ser explodidas por 40 moedas clicando nelas. Para desistir, use <kbd>Esc</kbd> ou o botão Cancelar.</li>
           <li><strong>Inicie o turno:</strong> clique em "Iniciar turno". Você pode comprar defesas durante o turno e coletar os bônus que aparecem no mapa.</li>
           <li><strong>Novas defesas:</strong> o jogo começa com 2 defesas; uma nova é liberada a cada turno concluído.</li>
           <li><strong>Repare:</strong> invasores atacam as defesas. Entre turnos, clique numa defesa para repará-la ou use "Reparar defesas".</li>
           <li><strong>Pesquise:</strong> no painel Pesquisa, evolua as defesas. A evolução vale a partir do turno seguinte.</li>
           <li><strong>Vender:</strong> clique numa defesa e escolha "Vender" para recuperar 60% do preço.</li>
           <li><strong>Voadores:</strong> aves e drones ✈ voam em linha reta e só são atingidos por defesas aéreas (morcego, gato, bruxa, caçador).</li>
-          <li><strong>Segunda rota:</strong> a partir do turno 4 invasores também usam a rota esmaecida no mapa.</li>
           <li><strong>Habilidades:</strong> durante o turno use ☄️ Meteoro (<kbd>1</kbd>), ❄️ Congelar (<kbd>2</kbd>) e 💖 Curar (<kbd>3</kbd>); cada uma tem recarga. O botão ⏩ muda a velocidade (1×, 2×, 3×).</li>
           <li><strong>Estrelas e dificuldade:</strong> ganhe até ★★★ por tema conforme as vidas restantes. Escolha Fácil, Normal ou Difícil. A partida é salva entre turnos e conquistas 🏆 são desbloqueadas.</li>
           <li><strong>Dicas:</strong> cada invasor tem fraquezas e imunidades (passe o mouse no painel Invasores). <kbd>P</kbd> pausa o jogo. Escolha o tema que quiser a qualquer momento.</li>
@@ -206,10 +206,19 @@
       <div class="congrats-card tutorial-card">
         <h2 id="achievements-title">🏆 Conquistas</h2>
         <ul class="achievement-list" id="achievements-list"></ul>
+        <button class="primary-button share-button" id="achievements-share" type="button">📤 Compartilhar conquistas</button>
         <button class="primary-button" id="achievements-close" type="button">Fechar</button>
       </div>
     </div>
-    <div class="toast" id="toast" aria-live="polite"></div>
+    <div class="congrats splash-overlay" id="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title" hidden>
+      <div class="congrats-card splash-card">
+        <h2 id="splash-title">✨ Novidades!</h2>
+        <div id="splash-body"></div>
+        <button class="primary-button" id="splash-close" type="button">Continuar</button>
+      </div>
+    </div>
+    <div class="build-menu" id="build-menu" role="menu" aria-label="Construir defesa" hidden></div>
+
     <div class="congrats pause-overlay" id="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
       <div class="congrats-card pause-card">
         <div class="congrats-trophy" aria-hidden="true">⏸</div>
@@ -224,7 +233,9 @@
         <div class="congrats-trophy" aria-hidden="true">🏆</div>
         <h2 id="congrats-title">Parabéns!</h2>
         <p class="congrats-stars" id="congrats-stars" aria-label="Estrelas"></p>
+        <p class="congrats-rank" id="congrats-rank"></p>
         <p id="congrats-text"></p>
+        <button class="primary-button" id="congrats-share" type="button">📤 Compartilhar conquistas</button>
         <button class="primary-button" id="congrats-close" type="button">Escolher outro tema</button>
       </div>
     </div>

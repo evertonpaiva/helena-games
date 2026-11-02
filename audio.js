@@ -103,7 +103,7 @@ const GameAudio = (() => {
   let SCALE = profile.scale;
   let PROGRESSIONS = profile.progressions;
   let ARPEGGIOS = profile.arpeggios;
-  const MIN_SOUND_INTERVAL = { shot: 0.05, impact: 0.05, destroyed: 0.06, towerHit: 0.08, enemyShot: 0.08, status: 0.1, enemySpawn: 0.25, enemyDeath: 0.25, repair: 0.3, bonus: 0.05 };
+  const MIN_SOUND_INTERVAL = { shot: 0.05, impact: 0.05, destroyed: 0.06, towerHit: 0.08, enemyShot: 0.08, status: 0.1, repair: 0.3, bonus: 0.05 };
 
   let context;
   let masterGain;
@@ -441,6 +441,11 @@ const GameAudio = (() => {
       noise({ dest: sfxBus, start: t, duration: 0.14, volume: 0.25, type: "lowpass", from: 1800, to: 250 });
       tone({ dest: sfxBus, freq: 150, to: 55, start: t, duration: 0.12, volume: 0.18 });
     },
+    explosion(_, t) {
+      tone({ dest: sfxBus, freq: 140, to: 35, start: t, duration: 0.55, volume: 0.28, type: "sawtooth", lowpass: 600 });
+      noise({ dest: sfxBus, start: t, duration: 0.6, volume: 0.35, type: "lowpass", from: 2400, to: 120 });
+      noise({ dest: sfxBus, start: t + 0.12, duration: 0.25, volume: 0.12, type: "highpass", from: 3000 });
+    },
     destroyed(_, t) {
       tone({ dest: sfxBus, freq: 380, to: 70, start: t, duration: 0.3, volume: 0.1, type: "sawtooth", lowpass: 1500 });
       noise({ dest: sfxBus, start: t, duration: 0.3, volume: 0.22, from: 900, to: 200 });
@@ -466,7 +471,7 @@ const GameAudio = (() => {
       const voice = {
         ghost: () => { tone({ dest: sfxBus, freq: 420, to: 640, start: t, duration: 0.35, volume: 0.06, type: "sine", attack: 0.1 }); tone({ dest: sfxBus, freq: 640, to: 380, start: t + 0.3, duration: 0.35, volume: 0.05, type: "sine" }); },
         spider: () => { for (let i = 0; i < 4; i += 1) tone({ dest: sfxBus, freq: 3400 + i * 150, start: t + i * 0.05, duration: 0.03, volume: 0.04, type: "square", lowpass: 5000 }); },
-        zombie: () => { tone({ dest: sfxBus, freq: 110, to: 70, start: t, duration: 0.5, volume: 0.12, type: "sawtooth", lowpass: 500, vibrato: 18 }); noise({ dest: sfxBus, start: t, duration: 0.4, volume: 0.06, type: "lowpass", from: 500, to: 200 }); },
+        zombie: () => { tone({ dest: sfxBus, freq: 110, to: 70, start: t, duration: 0.5, volume: 0.12, type: "sawtooth", lowpass: 500, vibrato: { rate: 18, depth: 6 } }); noise({ dest: sfxBus, start: t, duration: 0.4, volume: 0.06, type: "lowpass", from: 500, to: 200 }); },
         skeleton: () => { for (let i = 0; i < 4; i += 1) tone({ dest: sfxBus, freq: 1200 + (i % 2) * 400, start: t + i * 0.07, duration: 0.04, volume: 0.07, type: "square", lowpass: 3000 }); },
         vampire: () => { tone({ dest: sfxBus, freq: 880, to: 440, start: t, duration: 0.45, volume: 0.06, type: "sawtooth", lowpass: 1500 }); tone({ dest: sfxBus, freq: 1320, to: 660, start: t + 0.05, duration: 0.4, volume: 0.04, type: "triangle" }); },
         clown: () => { [660, 880, 660, 990, 760].forEach((note, i) => tone({ dest: sfxBus, freq: note, start: t + i * 0.09, duration: 0.08, volume: 0.06, type: "square", lowpass: 2200 })); },
