@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#171327">
+    <title>Tower Defense - Datas Comemorativas</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="audio.js" defer></script>
+    <script src="game.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-mark" id="brand-mark" aria-hidden="true">🎃</div>
+        <div>
+          <p class="eyebrow">Uma campanha de defesa</p>
+          <h1>Tower Defense <span>- Datas Comemorativas</span></h1>
+        </div>
+        <div class="header-actions">
+          <button class="music-toggle" id="music-toggle" type="button" aria-pressed="false">
+            <span class="music-icon" aria-hidden="true">♫</span>
+            <span id="music-label">Ativar música</span>
+          </button>
+          <button class="music-toggle is-playing" id="sfx-toggle" type="button" aria-pressed="true">
+            <span class="music-icon" aria-hidden="true">🔊</span>
+            <span id="sfx-label">Efeitos: ligados</span>
+          </button>
+          <label class="volume-control" for="volume-slider">
+            <span aria-hidden="true">🔉</span>
+            <span class="volume-label">Volume</span>
+            <input id="volume-slider" type="range" min="0" max="100" step="1" value="80" aria-label="Volume geral">
+            <output id="volume-value" for="volume-slider">80%</output>
+          </label>
+          <div class="local-badge"><span></span> Jogo local</div>
+        </div>
+      </header>
+
+      <section class="campaign-panel panel" aria-labelledby="campaign-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Escolha sua aventura</p>
+            <h2 id="campaign-title">Escolha o tema</h2>
+          </div>
+          <p class="progress-label" id="campaign-progress">0 de 4 temas concluídos</p>
+        </div>
+        <div class="theme-list" id="theme-list"></div>
+      </section>
+
+      <section class="game-layout" id="game-layout" aria-label="Fase Dia das Bruxas">
+        <div class="board-panel panel">
+          <div class="section-heading board-heading">
+            <div>
+              <p class="eyebrow" id="phase-eyebrow">Dia das Bruxas</p>
+              <h2>Proteja o caminho!</h2>
+            </div>
+            <div class="wave-counter" id="wave-counter">Turno 0 <span>/ 10</span></div>
+          </div>
+
+          <div class="board-frame">
+            <div class="sky" id="sky" aria-hidden="true"></div>
+            <div class="board-stage">
+              <div class="board" id="board" role="grid" aria-label="Tabuleiro da fase"></div>
+              <div class="effects-layer" id="effects-layer" aria-hidden="true"></div>
+            </div>
+            <div class="board-legend">
+              <span><i class="legend-path"></i> Caminho dos inimigos</span>
+              <span><i class="legend-tower" id="legend-tower">🎃</i> Sua defesa</span>
+              <span><i class="legend-enemy" id="legend-enemy">👻</i> Invasor (ataca suas defesas)</span>
+              <span><i class="legend-rock">🪨</i> Pedra (não permite construir)</span>
+            </div>
+          </div>
+          <p class="game-message" id="game-message" role="status" aria-live="polite"></p>
+          <section class="shop-dock" aria-labelledby="shop-title">
+            <div class="dock-header">
+              <h2 id="shop-title">Loja de defesas</h2>
+              <p class="shop-hint" id="shop-hint">Escolha uma defesa e depois um espaço livre no mapa.</p>
+            </div>
+            <div class="shop-items" id="shop-items"></div>
+            <div class="tower-inspector" id="tower-inspector" hidden>
+              <span id="inspector-info"></span>
+              <button class="repair-button" id="inspector-repair" type="button">🔧 Reparar</button>
+              <button class="text-button" id="inspector-close" type="button" aria-label="Fechar detalhes da defesa">✕</button>
+            </div>
+            <div class="shop-actions">
+              <button class="primary-button" id="turn-button" type="button">Iniciar turno 1</button>
+              <button class="pause-button" id="pause-button" type="button" hidden>⏸ Pausar jogo</button>
+              <button class="repair-button" id="repair-button" type="button" hidden>🔧 Reparar defesas</button>
+              <button class="text-button" id="restart-button" type="button">↺ Reiniciar jogo</button>
+            </div>
+          </section>
+        </div>
+
+        <aside class="side-panel">
+          <section class="panel stats-panel" aria-label="Estado da partida">
+            <div class="stat">
+              <span class="stat-icon">🪙</span>
+              <div><span class="stat-label">Moedas</span><strong id="coins">550</strong></div>
+            </div>
+            <div class="stat">
+              <span class="stat-icon">❤️</span>
+              <div><span class="stat-label">Vidas</span><strong id="lives">15</strong></div>
+            </div>
+            <div class="stat">
+              <span class="stat-icon">🛡️</span>
+              <div><span class="stat-label">Defesas</span><strong id="tower-count">0</strong></div>
+            </div>
+          </section>
+
+          <section class="panel wave-panel" aria-labelledby="wave-title">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="eyebrow" id="wave-phase-label">Prévia do turno 1</p>
+                <h2 id="wave-title">Invasores</h2>
+              </div>
+              <strong class="wave-percent" id="wave-percent">0%</strong>
+            </div>
+            <div class="wave-progress" id="wave-progress" role="progressbar" aria-label="Progresso da onda" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span id="wave-progress-fill"></span>
+            </div>
+            <dl class="wave-stats">
+              <div><dt id="wave-total-label">Previstos</dt><dd id="wave-total">0</dd></div>
+              <div><dt>Restantes</dt><dd id="wave-remaining">0</dd></div>
+              <div><dt>Derrotados</dt><dd id="wave-defeated">0</dd></div>
+              <div><dt>Escaparam</dt><dd id="wave-escaped">0</dd></div>
+            </dl>
+            <div class="wave-roster" id="wave-roster" aria-label="Tipos de invasores do turno"></div>
+            <p class="wave-note" id="wave-note"></p>
+          </section>
+
+          <section class="panel research-panel" aria-labelledby="research-title">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="eyebrow">Evolução das defesas</p>
+                <h2 id="research-title">Pesquisa</h2>
+              </div>
+            </div>
+            <p class="shop-hint">Pague agora; a evolução vale para todas as defesas do tipo a partir do próximo turno.</p>
+            <div class="research-list" id="research-list"></div>
+          </section>
+
+          <section class="tip-card">
+            <span aria-hidden="true">✨</span>
+            <p><strong>Dica</strong> Cada invasor tem fraquezas e imunidades (passe o mouse nos ícones do painel). Congele, atordoe ou retarde; colete os bônus que surgem no mapa durante os turnos.</p>
+          </section>
+        </aside>
+      </section>
+      <footer>
+        <img class="studio-logo" src="logo-helena-games.svg" alt="Helena Games" width="270" height="86">
+        <p>Produzido por <strong>Helena Games</strong> · Uma aventura local · Os temas concluídos ficam salvos neste navegador.</p>
+      </footer>
+    </main>
+    <div class="congrats defeat-overlay" id="defeat" role="dialog" aria-modal="true" aria-labelledby="defeat-title" hidden>
+      <div class="congrats-card defeat-card">
+        <div class="congrats-trophy" aria-hidden="true">💀</div>
+        <h2 id="defeat-title">Você perdeu!</h2>
+        <p id="defeat-text"></p>
+        <button class="primary-button" id="defeat-restart" type="button">↺ Tentar novamente</button>
+      </div>
+    </div>
+    <div class="congrats pause-overlay" id="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+      <div class="congrats-card pause-card">
+        <div class="congrats-trophy" aria-hidden="true">⏸</div>
+        <h2 id="pause-title">Jogo pausado</h2>
+        <p>Os invasores aguardam. Pressione <kbd>P</kbd> ou clique abaixo para continuar.</p>
+        <button class="primary-button" id="resume-button" type="button">▶ Continuar</button>
+      </div>
+    </div>
+    <div class="congrats" id="congrats" role="dialog" aria-modal="true" aria-labelledby="congrats-title" hidden>
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+      <div class="congrats-card">
+        <div class="congrats-trophy" aria-hidden="true">🏆</div>
+        <h2 id="congrats-title">Parabéns!</h2>
+        <p id="congrats-text"></p>
+        <button class="primary-button" id="congrats-close" type="button">Escolher outro tema</button>
+      </div>
+    </div>
+  </body>
+</html>
