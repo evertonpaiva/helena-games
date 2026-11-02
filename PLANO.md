@@ -4,7 +4,7 @@
 
 Criar **Tower Defense - Datas Comemorativas**, um jogo local para navegador inspirado nos
 tower defenses tradicionais. A campanha tem os temas Dia das Bruxas,
-Natal, Páscoa e Dia do Meio Ambiente; os temas podem ser escolhidos livremente a qualquer momento (não são sequenciais).
+Natal, Páscoa, Dia do Meio Ambiente, Carnaval e Festa Junina; os temas podem ser escolhidos livremente a qualquer momento (não são sequenciais).
 
 ## Decisões registradas
 
@@ -58,6 +58,12 @@ Natal, Páscoa e Dia do Meio Ambiente; os temas podem ser escolhidos livremente 
    lídio/pizzicato). Efeitos sonoros de tiro/voz seguem o arquétipo.
    Aviso ao iniciar turno com defesas danificadas/destruídas (`requestWave`).
    Animações de bob desaceleradas. Save v2 (migra o v1).
+10. **Rodada 10 — mecânicas:** vender defesa, velocidade 1×/2×/3×, prévia de alcance,
+   habilidades ativas, dificuldades, estrelas por tema, inimigos voadores (`air`),
+   segunda rota (`PATH_B`, turno 4+), conquistas e salvamento da partida
+   (`GAME_SAVE_KEY`). Equilíbrio ainda não validado em partidas completas.
+
+11. **Rodada 11 — temas Carnaval e Festa Junina:** entradas em `THEME_DEFS`, céus em `buildSky`, perfis em `audio.js`, estilos `body[data-theme=...]`. Páscoa e Meio Ambiente foram diferenciados por cor. Mecânicas exclusivas por tema (ex.: chuva reduzindo fogo) ficam como ideia futura.
 
 Ao retomar o trabalho em outra máquina ou sessão, leia este arquivo e o
 `README.md` na raiz do projeto. Preserve as decisões registradas e atualize o
@@ -94,3 +100,5 @@ estado desta sequência ao concluir ou alterar uma etapa.
    - Pesquisa: `game.research` (níveis aplicados) e `game.pendingResearch` (pagas, aplicadas em `beginWave` via `applyResearch`); decisão do usuário: "próxima fase" = turno seguinte no mesmo mapa. Níveis até `RESEARCH_MAX_LEVEL = 3`, bônus em `RESEARCH_BONUS`.
    - Tema `ambiente` em `THEME_DEFS`, CSS `body[data-theme="ambiente"]` e perfil musical em `audio.js`.
 7. **Rodada tutorial/cancelar:** modal de tutorial automático na 1ª visita + botão no cabeçalho, botão/tecla Esc para cancelar seleção de defesa, fundo do selo "Jogo local". Aguardando validação.
+8. **Rodada áudio/otimização:** agendador musical resistente a travamentos (`LOOKAHEAD`, Worker em `startScheduler`) e `build.sh` para gerar `dist/` minificado. Aguardando validação em celular.
+9. **Rodada layout mobile:** loja fixa e compacta no rodapé, tabuleiro menor (bloco `@media (max-width: 850px)` ao fim de `styles.css`). Aguardando validação em celular.

@@ -1747,15 +1747,15 @@ body[data-theme="pascoa"] .board-frame {
 }
 
 body[data-theme="pascoa"] .tile {
-  border-color: #b8f08a;
+  border-color: #f6ffc0;
   background:
-    radial-gradient(ellipse at 20% 5%, #e9ffc040, transparent 60%),
+    radial-gradient(ellipse at 20% 5%, #ffffff55, transparent 60%),
     radial-gradient(circle at 25% 35%, #ffd0ec 0 1.5px, transparent 2.5px),
     radial-gradient(circle at 75% 73%, #fff3a0 0 1.5px, transparent 2.5px),
-    linear-gradient(150deg, #76c564 0%, #56a853 48%, #3f8a46 100%);
+    linear-gradient(150deg, #d4f08a 0%, #b4dd70 48%, #94c85c 100%);
   box-shadow:
     inset 0 1px 0 #eaffc860,
-    0 1px 0 #357a3d, 0 2px 0 #2e6d36, 0 3px 0 #28602f, 0 4px 0 #225428, 0 5px 0 #1c4822,
+    0 1px 0 #7aa84a, 0 2px 0 #6e9b43, 0 3px 0 #628e3c, 0 4px 0 #568135, 0 5px 0 #4a742e,
     0 8px 9px #05090799;
 }
 
@@ -2211,15 +2211,15 @@ body[data-theme="ambiente"] .board-frame {
 }
 
 body[data-theme="ambiente"] .tile {
-  border-color: #a6e68a;
+  border-color: #6fd0a0;
   background:
     radial-gradient(ellipse at 20% 5%, #e9ffc040, transparent 60%),
     radial-gradient(circle at 25% 35%, #d8ffa0 0 1.5px, transparent 2.5px),
     radial-gradient(circle at 75% 73%, #8ad06a 0 1.5px, transparent 2.5px),
-    linear-gradient(150deg, #5fb85a 0%, #3f9a4a 48%, #2d7a3c 100%);
+    linear-gradient(150deg, #2f8a5a 0%, #1f7050 48%, #155a44 100%);
   box-shadow:
     inset 0 1px 0 #eaffc860,
-    0 1px 0 #286b34, 0 2px 0 #225e2d, 0 3px 0 #1d5226, 0 4px 0 #18461f, 0 5px 0 #133b19,
+    0 1px 0 #0f4a3a, 0 2px 0 #0c4133, 0 3px 0 #0a382c, 0 4px 0 #082f25, 0 5px 0 #06271e,
     0 8px 9px #05090799;
 }
 
@@ -2293,3 +2293,282 @@ body[data-theme="ambiente"] footer { color: #ffffffcc; }
 .tutorial-steps li + li {
   margin-top: 8px;
 }
+
+/* Mobile: loja compacta e fixa no rodapé da tela, tabuleiro menor e sem inclinação exagerada */
+@media (max-width: 850px) {
+  .app-shell {
+    width: min(100% - 12px, 760px);
+    padding-top: 10px;
+  }
+
+  .board-panel {
+    padding: 10px;
+  }
+
+  .board-heading {
+    margin-bottom: 8px;
+  }
+
+  .board-heading h2 {
+    font-size: 16px;
+  }
+
+  .board-frame {
+    padding: 4px;
+  }
+
+  .board-stage {
+    margin: 0;
+    transform: perspective(1250px) rotateX(12deg);
+  }
+
+  .board {
+    gap: 2px;
+  }
+
+  .tile {
+    border-radius: 4px;
+    font-size: clamp(9px, 3.4vw, 18px);
+    box-shadow: 0 2px 0 #1a2b22, 0 3px 4px #05090799;
+  }
+
+  .board-legend {
+    gap: 4px 10px;
+    padding-top: 8px;
+    font-size: 9px;
+  }
+
+  .game-message {
+    margin: 8px 0 0;
+    font-size: 12px;
+  }
+
+  .shop-dock {
+    position: sticky;
+    bottom: 0;
+    margin: 8px -6px -6px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    border-radius: 12px 12px 0 0;
+    gap: 5px;
+  }
+
+  .dock-header h2 {
+    display: none;
+  }
+
+  .dock-header .shop-hint {
+    font-size: 10px;
+  }
+
+  .shop-dock .shop-items {
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  .shop-dock .shop-item {
+    flex: 0 0 66px;
+    scroll-snap-align: start;
+    padding: 4px 2px;
+  }
+
+  .shop-dock .shop-emoji {
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+  }
+
+  .shop-dock .shop-copy strong {
+    font-size: 9px;
+  }
+
+  .shop-dock .shop-copy small {
+    display: none;
+  }
+
+  .shop-dock .shop-price {
+    font-size: 9px;
+  }
+
+  .shop-dock .shop-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .shop-dock .primary-button {
+    min-height: 34px;
+    grid-column: 1 / -1;
+  }
+
+  .shop-dock .repair-button,
+  .shop-dock .pause-button,
+  .shop-dock .text-button {
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  .tower-inspector {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+}
+
+/* ===== Rodada 10: novas mecânicas ===== */
+.tile.path-reserve { opacity: .55; filter: saturate(.5); outline: 1px dashed rgba(255, 255, 255, .35); outline-offset: -3px; }
+.tile.in-range { outline: 2px solid rgba(255, 226, 122, .9); outline-offset: -3px; box-shadow: inset 0 0 14px rgba(255, 226, 122, .45); }
+.tile.range-origin.in-range { outline-color: #fff; box-shadow: inset 0 0 20px rgba(255, 255, 255, .6); }
+.enemy-entity.enemy-flying { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: grid; place-items: center; }
+.enemy-entity.enemy-flying .tile-emoji { transform: translateY(-30%); filter: drop-shadow(0 12px 5px rgba(0, 0, 0, .45)); }
+.enemy-entity.enemy-flying .enemy-health { bottom: auto; top: 2px; }
+.ability-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ability-bar[hidden] { display: none; }
+.ability-bar button { flex: 1 1 110px; min-height: 40px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 10px; background: rgba(255, 255, 255, .1); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.ability-bar button:disabled { opacity: .55; cursor: not-allowed; }
+.ability-bar kbd { opacity: .7; font-size: .75em; }
+.ability-timer { display: block; font-size: .75em; font-weight: 600; opacity: .85; }
+.sell-button { background: linear-gradient(180deg, #d9a441, #a87420); }
+.difficulty-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.difficulty-picker span { font-weight: 700; }
+.difficulty-picker button { min-height: 36px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px; background: rgba(255, 255, 255, .08); color: inherit; font: inherit; cursor: pointer; }
+.difficulty-picker button.is-active { background: var(--accent, #ff9a3c); color: #1b1020; font-weight: 800; border-color: transparent; }
+.theme-stars { margin-left: 6px; color: #ffd24a; letter-spacing: 1px; }
+.congrats-stars { margin: 0 0 6px; font-size: 2rem; color: #ffd24a; letter-spacing: 4px; }
+.toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 90; display: grid; gap: 8px; pointer-events: none; }
+.toast-item { padding: 10px 18px; border-radius: 12px; background: #2b1d3e; color: #ffe27a; border: 1px solid #ffd24a; font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); animation: toast-in .3s ease-out; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-12px); } }
+.achievement-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; text-align: left; max-height: 55vh; overflow: auto; }
+.achievement { display: flex; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .06); opacity: .6; }
+.achievement.is-done { opacity: 1; background: rgba(255, 210, 74, .14); }
+.achievement-icon { font-size: 1.6rem; }
+.achievement small { display: block; opacity: .8; }
+
+@media (max-width: 850px) {
+  .ability-bar { margin-bottom: 4px; gap: 4px; }
+  .ability-bar button { min-height: 34px; font-size: .8rem; flex-basis: 30%; }
+  .ability-bar kbd { display: none; }
+  .toast { top: 8px; width: calc(100% - 20px); }
+}
+
+/* ===== Tema Carnaval ===== */
+body[data-theme="carnaval"] {
+  --accent: #ffd34d;
+  --accent-bright: #ffe98f;
+  --border: #c06ad0;
+  --panel-a: #55206e;
+  --panel-b: #3a1858;
+  background:
+    radial-gradient(ellipse at 80% 0%, #ffd34daa 0, transparent 38rem),
+    radial-gradient(ellipse at 5% 40%, #ff4fb8aa 0, transparent 34rem),
+    linear-gradient(180deg, #8a2fc0, #5a1f9a 55%, #2a1670);
+  background-attachment: fixed;
+}
+body[data-theme="carnaval"]::before {
+  background-image:
+    radial-gradient(3px 3px at 14% 23%, #ffd34dcc 45%, transparent 55%),
+    radial-gradient(3px 3px at 82% 17%, #ff6bd6bb 45%, transparent 55%),
+    radial-gradient(3px 3px at 62% 72%, #6bd0ffbb 45%, transparent 55%),
+    radial-gradient(3px 3px at 29% 86%, #9dff8abb 45%, transparent 55%);
+}
+body[data-theme="carnaval"] .board-frame {
+  border-color: #d58af0;
+  background:
+    radial-gradient(ellipse at 50% 30%, #6a2f9a, transparent 75%),
+    linear-gradient(145deg, #3a1a66, #230f4a);
+}
+body[data-theme="carnaval"] .tile {
+  border-color: #ffb3f0;
+  background:
+    radial-gradient(ellipse at 20% 5%, #ffffff40, transparent 60%),
+    radial-gradient(circle at 25% 35%, #ffd34d 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 75% 73%, #6bd0ff 0 1.5px, transparent 2.5px),
+    linear-gradient(150deg, #7a5be0 0%, #5a3fc0 48%, #4429a0 100%);
+  box-shadow:
+    inset 0 1px 0 #e0d0ff60,
+    0 1px 0 #35208a, 0 2px 0 #2e1b7a, 0 3px 0 #27176a, 0 4px 0 #20135a, 0 5px 0 #1a104c,
+    0 8px 9px #05090799;
+}
+body[data-theme="carnaval"] .tile.path {
+  border-color: #fff2a0;
+  background:
+    radial-gradient(ellipse at 20% 8%, #ffffff66, transparent 58%),
+    radial-gradient(circle at 30% 65%, #ff6bd6 0 1.5px, transparent 2.5px),
+    linear-gradient(150deg, #ffe066 0%, #ffc02e 48%, #e89a10 100%);
+  box-shadow:
+    inset 0 1px 0 #fff5b0a0,
+    0 1px 0 #b87a08, 0 2px 0 #a66d06, 0 3px 0 #946005, 0 4px 0 #825304, 0 5px 0 #704603,
+    0 8px 9px #0a060599;
+}
+body[data-theme="carnaval"] .tile.path::before { border-color: #ffffff55; }
+body[data-theme="carnaval"] .tile.tower-tile {
+  border-color: #ffb3f0;
+  background:
+    radial-gradient(ellipse at 50% 85%, #ff6bd640, transparent 56%),
+    linear-gradient(145deg, #c2308f, #6a2a8a 75%);
+}
+body[data-theme="carnaval"] .mist { background: radial-gradient(ellipse at 50% 100%, #ff9ee033, transparent 70%); }
+body[data-theme="carnaval"] .moon { filter: drop-shadow(0 0 24px #ffd34dcc); }
+body[data-theme="carnaval"] .legend-path { background: #ffc02e; border-color: #fff2a0; }
+body[data-theme="carnaval"] footer { color: #ffffffcc; }
+
+/* ===== Tema Festa Junina ===== */
+body[data-theme="junina"] {
+  --accent: #ff9a3c;
+  --accent-bright: #ffc98a;
+  --border: #c98a5a;
+  --panel-a: #5a2a1e;
+  --panel-b: #3f1f18;
+  background:
+    radial-gradient(ellipse at 80% 0%, #ffd27aaa 0, transparent 38rem),
+    radial-gradient(ellipse at 5% 40%, #ff7a3caa 0, transparent 34rem),
+    linear-gradient(180deg, #e0703a, #a8452f 55%, #4a2230);
+  background-attachment: fixed;
+}
+body[data-theme="junina"]::before {
+  background-image:
+    radial-gradient(3px 3px at 14% 23%, #ffd27acc 45%, transparent 55%),
+    radial-gradient(3px 3px at 82% 17%, #ff9a3cbb 45%, transparent 55%),
+    radial-gradient(3px 3px at 62% 72%, #ffe9a0bb 45%, transparent 55%),
+    radial-gradient(3px 3px at 29% 86%, #ffffffbb 45%, transparent 55%);
+}
+body[data-theme="junina"] .board-frame {
+  border-color: #a8703a;
+  background:
+    radial-gradient(ellipse at 50% 30%, #5a3050, transparent 75%),
+    linear-gradient(145deg, #3a2040, #26142e);
+}
+body[data-theme="junina"] .tile {
+  border-color: #e6d97a;
+  background:
+    radial-gradient(ellipse at 20% 5%, #fff6a040, transparent 60%),
+    radial-gradient(circle at 25% 35%, #fff0a0 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 75% 73%, #8a8a30 0 1.5px, transparent 2.5px),
+    linear-gradient(150deg, #bdb04e 0%, #a39a40 48%, #857f33 100%);
+  box-shadow:
+    inset 0 1px 0 #fff6a060,
+    0 1px 0 #6a6526, 0 2px 0 #5e5a21, 0 3px 0 #524e1c, 0 4px 0 #464217, 0 5px 0 #3a3712,
+    0 8px 9px #05090799;
+}
+body[data-theme="junina"] .tile.path {
+  border-color: #f2a06a;
+  background:
+    radial-gradient(ellipse at 20% 8%, #ffffff40, transparent 58%),
+    radial-gradient(circle at 30% 65%, #8a3a20 0 1px, transparent 2px),
+    linear-gradient(150deg, #d86a42 0%, #b94a2c 48%, #96381f 100%);
+  box-shadow:
+    inset 0 1px 0 #ffc8a0a0,
+    0 1px 0 #702a16, 0 2px 0 #62240f, 0 3px 0 #541f0e, 0 4px 0 #461a0c, 0 5px 0 #38150a,
+    0 8px 9px #0a060599;
+}
+body[data-theme="junina"] .tile.path::before { border-color: #ffffff30; }
+body[data-theme="junina"] .tile.tower-tile {
+  border-color: #f0c88a;
+  background:
+    radial-gradient(ellipse at 50% 85%, #ffb35a40, transparent 56%),
+    linear-gradient(145deg, #9a6a3a, #5a3a24 75%);
+}
+body[data-theme="junina"] .mist { background: radial-gradient(ellipse at 50% 100%, #ffc98a33, transparent 70%); }
+body[data-theme="junina"] .moon { filter: drop-shadow(0 0 24px #ffe9a0cc); }
+body[data-theme="junina"] .legend-path { background: #b94a2c; border-color: #f2a06a; }
+body[data-theme="junina"] footer { color: #ffffffcc; }

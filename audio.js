@@ -50,6 +50,38 @@ const GameAudio = (() => {
       ],
       tempo: 0.85, lead: "pluck", leadVolume: 0.05, melodyChance: 1.3,
     },
+    carnaval: {
+      scale: [0, 2, 3, 5, 7, 9, 10],
+      progressions: [
+        [[0, "m"], [5, "M"], [10, "M"], [7, "m"]],
+        [[0, "m"], [7, "M"], [0, "m"], [5, "M"]],
+        [[0, "m"], [10, "M"], [5, "M"], [7, "M"]],
+        [[0, "m"], [3, "M"], [10, "M"], [7, "M"]],
+        [[5, "M"], [0, "m"], [7, "M"], [0, "m"]],
+      ],
+      arpeggios: [
+        [0, 2, 1, 3, 0, 2, 1, 3],
+        [0, 1, 0, 2, 3, 2, 1, 2],
+        [3, 1, 2, 0, 3, 1, 2, 0],
+      ],
+      tempo: 0.72, lead: "bell", leadVolume: 0.05, melodyChance: 1.4,
+    },
+    junina: {
+      scale: [0, 2, 4, 5, 7, 9, 10],
+      progressions: [
+        [[0, "M"], [5, "M"], [7, "M"], [0, "M"]],
+        [[0, "M"], [10, "M"], [5, "M"], [0, "M"]],
+        [[0, "M"], [7, "M"], [5, "M"], [7, "M"]],
+        [[0, "M"], [9, "m"], [5, "M"], [7, "M"]],
+        [[5, "M"], [0, "M"], [7, "M"], [0, "M"]],
+      ],
+      arpeggios: [
+        [0, 2, 1, 2, 0, 2, 1, 3],
+        [0, 1, 2, 3, 2, 1, 2, 1],
+        [0, 2, 0, 3, 1, 3, 2, 1],
+      ],
+      tempo: 0.8, lead: "pluck", leadVolume: 0.052, melodyChance: 1.35,
+    },
     ambiente: {
       scale: [0, 2, 4, 5, 7, 9, 10],
       progressions: [
@@ -84,6 +116,7 @@ const GameAudio = (() => {
   let volume = loadVolume();
   let sfxEnabled = true;
   let schedulerTimer;
+  let schedulerWorker;
   let nextStepTime = 0;
   let step = 0;
   let bar = -1;
@@ -314,13 +347,40 @@ const GameAudio = (() => {
     }
   }
 
+  // Agenda notas com folga grande e relógio em Web Worker: no celular o thread
+  // principal engasga ao redesenhar o tabuleiro e, com timers atrasados, a música
+  // perdia passos e ficava mais lenta que no desktop.
+  const LOOKAHEAD = 1.2;
+  const TICK_INTERVAL_MS = 100;
+
   function tick() {
-    if (nextStepTime < context.currentTime - 0.1) nextStepTime = context.currentTime + 0.05;
-    while (nextStepTime < context.currentTime + 0.4) {
+    if (!context || !musicEnabled) return;
+    if (nextStepTime < context.currentTime - LOOKAHEAD) nextStepTime = context.currentTime + 0.05;
+    while (nextStepTime < context.currentTime + LOOKAHEAD) {
       scheduleStep(nextStepTime);
       step += 1;
       nextStepTime += stepDuration();
     }
+  }
+
+  function startScheduler() {
+    try {
+      const source = `setInterval(() => postMessage(0), ${TICK_INTERVAL_MS});`;
+      const url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+      schedulerWorker = new Worker(url);
+      URL.revokeObjectURL(url);
+      schedulerWorker.onmessage = tick;
+    } catch (error) {
+      schedulerWorker = undefined;
+      schedulerTimer = window.setInterval(tick, TICK_INTERVAL_MS);
+    }
+  }
+
+  function stopScheduler() {
+    if (schedulerWorker) schedulerWorker.terminate();
+    schedulerWorker = undefined;
+    window.clearInterval(schedulerTimer);
+    schedulerTimer = undefined;
   }
 
   function setMusic(enabled) {
@@ -329,17 +389,16 @@ const GameAudio = (() => {
       musicEnabled = true;
       musicBus.gain.cancelScheduledValues(context.currentTime);
       musicBus.gain.setTargetAtTime(0.9, context.currentTime, 0.2);
-      if (!schedulerTimer) {
+      if (!schedulerTimer && !schedulerWorker) {
         step = 0;
         bar = -1;
         nextStepTime = context.currentTime + 0.05;
         tick();
-        schedulerTimer = window.setInterval(tick, 80);
+        startScheduler();
       }
     } else {
       musicEnabled = false;
-      window.clearInterval(schedulerTimer);
-      schedulerTimer = undefined;
+      stopScheduler();
       if (context) {
         musicBus.gain.cancelScheduledValues(context.currentTime);
         musicBus.gain.setTargetAtTime(0, context.currentTime, 0.08);

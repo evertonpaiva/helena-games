@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#171327">
     <title>Tower Defense - Datas Comemorativas</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon-180.png">
     <link rel="stylesheet" href="styles.css">
     <script src="audio.js" defer></script>
     <script src="game.js" defer></script>
@@ -36,6 +38,10 @@
             <span class="music-icon" aria-hidden="true">❓</span>
             <span>Tutorial</span>
           </button>
+          <button class="music-toggle" id="achievements-button" type="button">
+            <span class="music-icon" aria-hidden="true">🏆</span>
+            <span>Conquistas <b id="achievements-count">0/12</b></span>
+          </button>
           <div class="local-badge"><span></span> Jogo local</div>
         </div>
       </header>
@@ -46,7 +52,13 @@
             <p class="eyebrow">Escolha sua aventura</p>
             <h2 id="campaign-title">Escolha o tema</h2>
           </div>
-          <p class="progress-label" id="campaign-progress">0 de 4 temas concluídos</p>
+          <p class="progress-label" id="campaign-progress">0 de 6 temas concluídos</p>
+        </div>
+        <div class="difficulty-picker" role="group" aria-label="Dificuldade">
+          <span>Dificuldade:</span>
+          <button type="button" data-difficulty="easy">😊 Fácil</button>
+          <button type="button" data-difficulty="normal">⚔️ Normal</button>
+          <button type="button" data-difficulty="hard">🔥 Difícil</button>
         </div>
         <div class="theme-list" id="theme-list"></div>
       </section>
@@ -85,10 +97,17 @@
             <div class="tower-inspector" id="tower-inspector" hidden>
               <span id="inspector-info"></span>
               <button class="repair-button" id="inspector-repair" type="button">🔧 Reparar</button>
+              <button class="repair-button sell-button" id="inspector-sell" type="button">💰 Vender</button>
               <button class="text-button" id="inspector-close" type="button" aria-label="Fechar detalhes da defesa">✕</button>
+            </div>
+            <div class="ability-bar" id="ability-bar" hidden>
+              <button type="button" data-ability="meteor" title="Tecla 1: dano em todos os invasores">☄️ Meteoro <kbd>1</kbd> <span class="ability-timer">pronta</span></button>
+              <button type="button" data-ability="freeze" title="Tecla 2: congela todos os invasores">❄️ Congelar <kbd>2</kbd> <span class="ability-timer">pronta</span></button>
+              <button type="button" data-ability="heal" title="Tecla 3: cura todas as defesas">💖 Curar <kbd>3</kbd> <span class="ability-timer">pronta</span></button>
             </div>
             <div class="shop-actions">
               <button class="primary-button" id="turn-button" type="button">Iniciar turno 1</button>
+              <button class="pause-button" id="speed-button" type="button">⏩ Velocidade 1×</button>
               <button class="pause-button" id="pause-button" type="button" hidden>⏸ Pausar jogo</button>
               <button class="repair-button" id="repair-button" type="button" hidden>🔧 Reparar defesas</button>
               <button class="text-button" id="restart-button" type="button">↺ Reiniciar jogo</button>
@@ -173,11 +192,24 @@
           <li><strong>Novas defesas:</strong> o jogo começa com 2 defesas; uma nova é liberada a cada turno concluído.</li>
           <li><strong>Repare:</strong> invasores atacam as defesas. Entre turnos, clique numa defesa para repará-la ou use "Reparar defesas".</li>
           <li><strong>Pesquise:</strong> no painel Pesquisa, evolua as defesas. A evolução vale a partir do turno seguinte.</li>
+          <li><strong>Vender:</strong> clique numa defesa e escolha "Vender" para recuperar 60% do preço.</li>
+          <li><strong>Voadores:</strong> aves e drones ✈ voam em linha reta e só são atingidos por defesas aéreas (morcego, gato, bruxa, caçador).</li>
+          <li><strong>Segunda rota:</strong> a partir do turno 4 invasores também usam a rota esmaecida no mapa.</li>
+          <li><strong>Habilidades:</strong> durante o turno use ☄️ Meteoro (<kbd>1</kbd>), ❄️ Congelar (<kbd>2</kbd>) e 💖 Curar (<kbd>3</kbd>); cada uma tem recarga. O botão ⏩ muda a velocidade (1×, 2×, 3×).</li>
+          <li><strong>Estrelas e dificuldade:</strong> ganhe até ★★★ por tema conforme as vidas restantes. Escolha Fácil, Normal ou Difícil. A partida é salva entre turnos e conquistas 🏆 são desbloqueadas.</li>
           <li><strong>Dicas:</strong> cada invasor tem fraquezas e imunidades (passe o mouse no painel Invasores). <kbd>P</kbd> pausa o jogo. Escolha o tema que quiser a qualquer momento.</li>
         </ol>
         <button class="primary-button" id="tutorial-close" type="button">Entendi, vamos jogar!</button>
       </div>
     </div>
+    <div class="congrats tutorial-overlay" id="achievements" role="dialog" aria-modal="true" aria-labelledby="achievements-title" hidden>
+      <div class="congrats-card tutorial-card">
+        <h2 id="achievements-title">🏆 Conquistas</h2>
+        <ul class="achievement-list" id="achievements-list"></ul>
+        <button class="primary-button" id="achievements-close" type="button">Fechar</button>
+      </div>
+    </div>
+    <div class="toast" id="toast" aria-live="polite"></div>
     <div class="congrats pause-overlay" id="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
       <div class="congrats-card pause-card">
         <div class="congrats-trophy" aria-hidden="true">⏸</div>
@@ -191,6 +223,7 @@
       <div class="congrats-card">
         <div class="congrats-trophy" aria-hidden="true">🏆</div>
         <h2 id="congrats-title">Parabéns!</h2>
+        <p class="congrats-stars" id="congrats-stars" aria-label="Estrelas"></p>
         <p id="congrats-text"></p>
         <button class="primary-button" id="congrats-close" type="button">Escolher outro tema</button>
       </div>

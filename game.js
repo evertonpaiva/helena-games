@@ -8,9 +8,35 @@ const RESEARCH_BONUS = { damage: 0.3, hp: 0.25, range: 0.25, heal: 0.3 };
 const TOTAL_WAVES = 10;
 const TICK_MS = 625;
 const levelOf = (wave) => (wave - 1) * 2 + 1;
-const STARTING_COINS = 550;
+const SELL_RATE = 0.6;
+const ROUTE_B_FROM_WAVE = 4;
+const SPEEDS = [1, 2, 3];
+const DIFFICULTIES = {
+  easy: { name: "Fácil", icon: "🌱", coins: 700, lives: 20, hp: 0.8, dmg: 0.8 },
+  normal: { name: "Normal", icon: "⚔️", coins: 550, lives: 15, hp: 1, dmg: 1 },
+  hard: { name: "Difícil", icon: "🔥", coins: 450, lives: 10, hp: 1.25, dmg: 1.25 },
+};
+const ABILITIES = {
+  meteor: { name: "Chuva de meteoros", icon: "☄️", key: "1", cooldown: 32, blurb: "Causa dano a todos os invasores" },
+  freeze: { name: "Congelamento geral", icon: "❄️", key: "2", cooldown: 40, blurb: "Congela todos os invasores por instantes" },
+  heal: { name: "Cura geral", icon: "💖", key: "3", cooldown: 36, blurb: "Recupera 40% da vida de todas as defesas" },
+};
+const ACHIEVEMENTS = [
+  { id: "first_win", icon: "🏆", name: "Primeira vitória", desc: "Conclua um tema." },
+  { id: "all_themes", icon: "🌟", name: "Lenda das datas", desc: "Conclua todos os temas." },
+  { id: "flawless", icon: "🛡️", name: "Intacto", desc: "Vença um tema sem perder nenhuma vida." },
+  { id: "three_stars", icon: "⭐", name: "Três estrelas", desc: "Ganhe 3 estrelas em um tema." },
+  { id: "hard_win", icon: "🔥", name: "Desafio aceito", desc: "Vença no modo Difícil." },
+  { id: "rich", icon: "💰", name: "Cofre cheio", desc: "Termine um turno com 1500 moedas ou mais." },
+  { id: "scientist", icon: "🔬", name: "Cientista", desc: "Evolua uma defesa ao nível 3." },
+  { id: "strategist", icon: "🎯", name: "Estrategista", desc: "Use as 3 habilidades no mesmo turno." },
+  { id: "sky_hunter", icon: "🦅", name: "Caça-voadores", desc: "Derrote 30 invasores voadores." },
+  { id: "exterminator", icon: "💀", name: "Exterminador", desc: "Derrote 500 invasores no total." },
+  { id: "recycler", icon: "♻️", name: "Reciclagem", desc: "Venda 5 defesas." },
+  { id: "wall", icon: "🧱", name: "Muralha", desc: "Conclua um turno a partir do 5º sem perder nenhuma defesa." },
+];
+const GAME_SAVE_KEY = "tower-defense-feriados-game-v1";
 const VOICE_CHANCE = { spawn: 0.6, death: 0.75 };
-const STARTING_LIVES = 15;
 const REPAIR_COST_PER_HP = 0.5;
 const SAVE_KEY = "tower-defense-feriados-save-v2";
 const LEGACY_SAVE_KEY = "tower-defense-feriados-save-v1";
@@ -37,17 +63,17 @@ const TOWER_BASE = {
   cat: {
     name: "Gato mágico", emoji: "🐈‍⬛", price: 115, damage: 44, range: 3.2, reload: 4, hp: 80, element: "arcane",
     effects: [{ status: "stun", ticks: 3, chance: 0.3 }],
-    glyph: "◆", color: "#c58cff", blurb: "Arcano: pode atordoar",
+    glyph: "◆", color: "#c58cff", blurb: "Arcano: pode atordoar", air: true,
   },
   bat: {
     name: "Morcego", emoji: "🦇", price: 90, damage: 14, range: 3.6, reload: 2, hp: 45, element: "physical",
     effects: [{ status: "disarm", ticks: 4, chance: 0.4 }],
-    glyph: "➤", color: "#ff6b8a", blurb: "Rápido: pode desarmar",
+    glyph: "➤", color: "#ff6b8a", blurb: "Rápido: pode desarmar", air: true,
   },
   witch: {
     name: "Bruxa", emoji: "🧙", price: 150, damage: 30, range: 3, reload: 5, hp: 70, element: "arcane", splash: 1.3,
     effects: [{ status: "poison", ticks: 4, power: 3 }],
-    glyph: "✺", color: "#7dff9c", blurb: "Área arcana + veneno",
+    glyph: "✺", color: "#7dff9c", blurb: "Área arcana + veneno", air: true,
   },
   cauldron: {
     name: "Caldeirão", emoji: "🫕", price: 100, damage: 9, range: 2.4, reload: 3, hp: 95, element: "poison",
@@ -62,7 +88,7 @@ const TOWER_BASE = {
   hunter: {
     name: "Caçador", emoji: "🏹", price: 130, damage: 58, range: 4.4, reload: 6, hp: 55, element: "physical", crit: 0.2,
     effects: [],
-    glyph: "➳", color: "#ffe27a", blurb: "Longo alcance; 20% crítico",
+    glyph: "➳", color: "#ffe27a", blurb: "Longo alcance; 20% crítico", air: true,
   },
   candle: {
     name: "Vela benta", emoji: "🕯️", price: 85, damage: 0, range: 0, reload: 4, hp: 50, heal: { amount: 9, range: 2.3 },
@@ -106,6 +132,11 @@ const ENEMY_BASE = {
     name: "Palhaço sinistro", emoji: "🤡", hp: 1.2, speed: 2, reward: 1.6, from: 12, weight: 2,
     attack: { damage: 6, range: 1.5, cooldown: 3 }, glyph: "✹", color: "#ff7a3d",
     mods: { poison: 1.4, physical: 1.2 }, immune: ["disarm"],
+  },
+  flyer: {
+    name: "Corvo", emoji: "🐦‍⬛", hp: 0.7, speed: 2, reward: 1.5, from: 5, weight: 2, flying: true,
+    attack: { damage: 5, range: 1.5, cooldown: 3 }, glyph: "➴", color: "#9aa0c8",
+    mods: { physical: 1.2 }, immune: [],
   },
   ogre: {
     name: "Ogro", emoji: "👹", hp: 5, speed: 4, reward: 4, from: 99, weight: 0, boss: true,
@@ -158,6 +189,7 @@ const THEME_DEFS = {
       skeleton: { name: "Quebra-nozes", emoji: "💂", color: "#ff9b9b", mods: { arcane: 1.4, physical: 0.6 }, immune: ["poison"] },
       vampire: { name: "Krampus", emoji: "😈", color: "#ff5d6e", mods: { fire: 0.6, frost: 1.3 }, immune: ["burn"] },
       clown: { name: "Elfo travesso", emoji: "🧝", color: "#7dff9c", mods: { poison: 1.4, physical: 1.2 }, immune: ["disarm"] },
+      flyer: { name: "Coruja polar", emoji: "🦉", color: "#dfe8f5", mods: { fire: 1.4 }, immune: ["freeze"] },
       ogre: { name: "Grinch", emoji: "👺", color: "#6fe06f", mods: { frost: 0.8, arcane: 1.2 }, immune: ["stun"] },
     },
     bonus: [
@@ -189,6 +221,7 @@ const THEME_DEFS = {
       skeleton: { name: "Caranguejo", emoji: "🦀", color: "#ff8a6a", mods: { frost: 1.5, physical: 0.6 }, immune: ["disarm"] },
       vampire: { name: "Raposa matreira", emoji: "🦊", color: "#ffa04d", mods: { fire: 1.4, arcane: 0.7 }, immune: ["slow"] },
       clown: { name: "Abelha furiosa", emoji: "🐝", color: "#ffe14d", mods: { poison: 1.5, frost: 1.3 }, immune: ["burn"] },
+      flyer: { name: "Borboleta ladra", emoji: "🦋", color: "#ffb3e6", mods: { fire: 1.5 }, immune: [] },
       ogre: { name: "Dragão de chocolate", emoji: "🐉", color: "#c47a3d", mods: { frost: 0.8, fire: 1.5 }, immune: ["stun"] },
     },
     bonus: [
@@ -220,6 +253,7 @@ const THEME_DEFS = {
       skeleton: { name: "Motosserra", emoji: "🪚", color: "#ffb36b", mods: { physical: 0.5, arcane: 1.4 }, immune: ["poison", "burn"] },
       vampire: { name: "Caminhão poluidor", emoji: "🚛", color: "#ff8a6e", mods: { fire: 1.4, frost: 0.6 }, immune: ["freeze"] },
       clown: { name: "Incendiário", emoji: "🧨", color: "#ff7a3d", mods: { poison: 1.4, physical: 1.2 }, immune: ["disarm"] },
+      flyer: { name: "Drone poluidor", emoji: "🛸", color: "#b9bfcc", mods: { arcane: 1.4 }, immune: [] },
       ogre: { name: "Escavadeira gigante", emoji: "🚜", color: "#ffc13b", mods: { frost: 0.8 }, immune: ["stun"] },
     },
     bonus: [
@@ -230,11 +264,77 @@ const THEME_DEFS = {
     decor: ["🌲", "🌿", "🍃", "🍄", "🌼", "🦋", "🪵", "🌾", "🌲", "🐛"],
     landmarks: { 10: "🏞️", 49: "🌳", 12: "🌲", 84: "🦌" },
   },
+  carnaval: {
+    id: 5, name: "Carnaval", icon: "🎭", blurb: "Avenida de confete e foliões desgovernados",
+    music: "Trilha de Carnaval", sky: "carnaval", victory: "Fase Carnaval concluída!",
+    towers: {
+      lantern: { name: "Confete-canhão", emoji: "🎊", color: "#ff6bd6" },
+      cat: { name: "Passista", emoji: "💃", color: "#ff9ee0" },
+      bat: { name: "Tucano folião", emoji: "🦜", color: "#ffd34d" },
+      witch: { name: "Rainha da bateria", emoji: "👸", color: "#c58bff" },
+      cauldron: { name: "Tamborim", emoji: "🥁", color: "#ffb347" },
+      crystal: { name: "Raspadinha", emoji: "🍧", color: "#8fe9ff" },
+      hunter: { name: "Rei Momo", emoji: "🤴", color: "#ffd34d" },
+      candle: { name: "Caipirinha curativa", emoji: "🍹", color: "#9dff8a" },
+      tombstone: { name: "Carro alegórico", emoji: "🚌", color: "#ff7a5c" },
+    },
+    enemies: {
+      ghost: { name: "Fantasma de confete", emoji: "👻", color: "#e6d2ff", mods: { physical: 0.5, arcane: 1.5 }, immune: ["poison"] },
+      spider: { name: "Rato folião", emoji: "🐭", color: "#d9c2b0", mods: { fire: 1.5, poison: 0.6 }, immune: [] },
+      zombie: { name: "Ressaca", emoji: "🥴", color: "#b8d86a", mods: { poison: 1.4, physical: 0.6 }, immune: ["stun"] },
+      skeleton: { name: "Esqueleto de fantasia", emoji: "💀", color: "#f2f2f2", mods: { physical: 0.5, fire: 1.4 }, immune: ["disarm"] },
+      vampire: { name: "Drácula de bloco", emoji: "🧛", color: "#ff5d7a", mods: { fire: 0.7, frost: 1.4 }, immune: ["slow"] },
+      clown: { name: "Pierrô sombrio", emoji: "🤡", color: "#ff7ad9", mods: { poison: 1.4, arcane: 1.2 }, immune: ["burn"] },
+      flyer: { name: "Serpentina voadora", emoji: "🎏", color: "#6bd0ff", mods: { fire: 1.5 }, immune: [] },
+      ogre: { name: "Boneco gigante", emoji: "👹", color: "#ffc13b", mods: { frost: 0.8, arcane: 1.3 }, immune: ["stun"] },
+    },
+    bonus: [
+      { emoji: "🎉", value: 22, weight: 5, name: "Confete" },
+      { emoji: "🎭", value: 38, weight: 3, name: "Máscara" },
+      { emoji: "👑", value: 70, weight: 1, name: "Coroa de ouro" },
+    ],
+    decor: ["🎈", "🎶", "🎺", "🎵", "🎉", "🌴", "🎈", "🎶", "🌴"],
+    landmarks: { 10: "🏟️", 49: "🎡", 12: "🌴", 84: "🎠" },
+  },
+  junina: {
+    id: 6, name: "Festa Junina", icon: "🌽", blurb: "Arraial de fogueira, quadrilha e bandeirinhas",
+    music: "Trilha Junina", sky: "junina", victory: "Fase Festa Junina concluída!",
+    towers: {
+      lantern: { name: "Fogueira", emoji: "🔥", color: "#ff8a3d" },
+      cat: { name: "Balão junino", emoji: "🏮", color: "#ff6b6b" },
+      bat: { name: "Pipa", emoji: "🪁", color: "#6bd0ff" },
+      witch: { name: "Sanfoneira", emoji: "👩‍🌾", color: "#ffb3e6" },
+      cauldron: { name: "Panela de canjica", emoji: "🍲", color: "#e0b06a" },
+      crystal: { name: "Bloco de gelo", emoji: "🧊", color: "#bdeaff" },
+      hunter: { name: "Arqueiro caipira", emoji: "🤠", color: "#d9a066" },
+      candle: { name: "Quentão curativo", emoji: "🍵", color: "#ff9a5c" },
+      tombstone: { name: "Fardo de palha", emoji: "🌾", color: "#e6c460" },
+    },
+    enemies: {
+      ghost: { name: "Assombração do milharal", emoji: "👻", color: "#d2e0b8", mods: { physical: 0.5, fire: 1.4 }, immune: ["poison"] },
+      spider: { name: "Escorpião", emoji: "🦂", color: "#ff9a6a", mods: { frost: 1.5, poison: 0.4 }, immune: [] },
+      zombie: { name: "Boi bravo", emoji: "🐂", color: "#b58a5a", mods: { physical: 0.6, poison: 1.4 }, immune: ["stun"] },
+      skeleton: { name: "Espantalho zumbi", emoji: "🧟", color: "#c9d48a", mods: { fire: 1.6, physical: 0.6 }, immune: ["disarm"] },
+      vampire: { name: "Lobisomem", emoji: "🐺", color: "#b9bfcc", mods: { arcane: 1.4, fire: 0.7 }, immune: ["slow"] },
+      clown: { name: "Quadrilheiro rebelde", emoji: "🕺", color: "#ff7a7a", mods: { poison: 1.4, frost: 1.2 }, immune: ["burn"] },
+      flyer: { name: "Balão-fantasma", emoji: "🎈", color: "#ffb36b", mods: { arcane: 1.4 }, immune: [] },
+      ogre: { name: "Mula sem cabeça", emoji: "🐴", color: "#ff8a3d", mods: { frost: 1.3, fire: 0.5 }, immune: ["stun"] },
+    },
+    bonus: [
+      { emoji: "🌽", value: 22, weight: 5, name: "Milho" },
+      { emoji: "🥜", value: 38, weight: 3, name: "Paçoca" },
+      { emoji: "⭐", value: 70, weight: 1, name: "Estrela de São João" },
+    ],
+    decor: ["🌽", "🌻", "🍂", "🌳", "🎏", "🍁", "🌳", "🌻", "🍄"],
+    landmarks: { 10: "🏡", 49: "⛪", 12: "🌳", 84: "🎪" },
+  },
 };
 const THEME_KEYS = Object.keys(THEME_DEFS);
 let currentTheme = "halloween";
 
 const PATH = [];
+const PATH_B = [];
+const SKY = [];
 const pathSet = new Set();
 const rockSet = new Set();
 let mapSeed = 0;
@@ -268,13 +368,33 @@ function buildRoute() {
   return cells.map(([x, y]) => y * COLUMNS + x);
 }
 
+function rebuildPathSet() {
+  pathSet.clear();
+  for (const cell of [...PATH, ...PATH_B]) pathSet.add(cell);
+}
+
+// Rota principal (A) + segunda rota (B, ativa a partir do turno ROUTE_B_FROM_WAVE) que pode
+// cruzar a primeira; voadores seguem uma linha reta (SKY) por cima de tudo.
 function generatePath() {
   const previous = PATH.join(",");
   let route;
   do route = buildRoute(); while (route.length < 22 || route.length > 46 || route.join(",") === previous);
+  const rowOf = (cell) => Math.floor(cell / COLUMNS);
+  let second;
+  let attempts = 0;
+  do {
+    second = buildRoute();
+    attempts += 1;
+  } while (attempts < 3000 && (
+    second.length < 18 || second.length > 34 ||
+    Math.abs(rowOf(second[0]) - rowOf(route[0])) < 3 ||
+    new Set([...route, ...second]).size > 56
+  ));
   PATH.splice(0, PATH.length, ...route);
-  pathSet.clear();
-  for (const cell of PATH) pathSet.add(cell);
+  PATH_B.splice(0, PATH_B.length, ...second);
+  const skyRow = Math.floor(Math.random() * ROWS);
+  SKY.splice(0, SKY.length, ...Array.from({ length: COLUMNS }, (_, column) => skyRow * COLUMNS + column));
+  rebuildPathSet();
   mapSeed = Math.floor(Math.random() * 1e6);
   placeRocks();
 }
@@ -347,6 +467,9 @@ const waveElements = {
 };
 const shopItemsElement = document.querySelector("#shop-items");
 const researchListElement = document.querySelector("#research-list");
+const abilityBar = document.querySelector("#ability-bar");
+const speedButton = document.querySelector("#speed-button");
+const toastElement = document.querySelector("#toast");
 const inspectorElement = document.querySelector("#tower-inspector");
 let researchSignature = "";
 const repairButton = document.querySelector("#repair-button");
@@ -356,6 +479,12 @@ const progress = loadProgress();
 let game;
 let nextEnemyId = 0;
 let nextBonusId = 0;
+let gameSpeed = 1;
+let hoverCell = null;
+
+const cellOf = (enemy) => enemy.route[enemy.pathIndex];
+const routeBActive = (wave) => wave >= ROUTE_B_FROM_WAVE;
+const rangeOf = (tower) => tower.range || tower.heal?.range || 0;
 
 function waveSize(wave) {
   return 8 + Math.ceil(levelOf(wave));
@@ -385,8 +514,12 @@ function decorFor(cell) {
 
 function createGame() {
   return {
-    coins: STARTING_COINS,
-    lives: STARTING_LIVES,
+    coins: DIFFICULTIES[progress.difficulty].coins,
+    lives: DIFFICULTIES[progress.difficulty].lives,
+    maxLives: DIFFICULTIES[progress.difficulty].lives,
+    spawned: 0,
+    abilityCd: {},
+    abilitiesUsed: [],
     wave: 0,
     phase: "preparation",
     selectedTower: null,
@@ -413,13 +546,17 @@ function createGame() {
 }
 
 function loadProgress() {
-  const fresh = { completed: {}, lastTheme: "halloween" };
+  const fresh = { completed: {}, lastTheme: "halloween", difficulty: "normal", stars: {}, achievements: {}, stats: { defeated: 0, flyers: 0, sold: 0 } };
   try {
     const saved = localStorage.getItem(SAVE_KEY);
     if (saved) {
       const data = JSON.parse(saved);
       for (const key of THEME_KEYS) if (data.completed && data.completed[key] === true) fresh.completed[key] = true;
       if (THEME_KEYS.includes(data.lastTheme)) fresh.lastTheme = data.lastTheme;
+      if (DIFFICULTIES[data.difficulty]) fresh.difficulty = data.difficulty;
+      for (const key of THEME_KEYS) if ([1, 2, 3].includes(data.stars?.[key])) fresh.stars[key] = data.stars[key];
+      for (const item of ACHIEVEMENTS) if (data.achievements?.[item.id] === true) fresh.achievements[item.id] = true;
+      for (const key of Object.keys(fresh.stats)) if (Number.isFinite(data.stats?.[key]) && data.stats[key] >= 0) fresh.stats[key] = data.stats[key];
       return fresh;
     }
     const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
@@ -478,6 +615,19 @@ function buildSky(kind) {
   if (kind === "ambiente") {
     return `<span class="moon">🌤️</span><span class="sky-cloud sky-cloud-1">☁️</span><span class="sky-cloud sky-cloud-2">☁️</span>${flyers("🐦", 3)}<span class="mist mist-1"></span><span class="mist mist-2"></span>`;
   }
+  if (kind === "carnaval") {
+    const colors = ["#ff6bd6", "#ffd34d", "#6bd0ff", "#9dff8a", "#ff7a5c"];
+    const confetti = Array.from({ length: 28 }, (_, index) => {
+      const left = (index * 41) % 100;
+      const size = 9 + (index * 5) % 10;
+      const duration = 8 + (index * 3) % 8;
+      return `<span class="snowflake" style="left:${left}%;font-size:${size}px;color:${colors[index % colors.length]};animation-duration:${duration}s;animation-delay:-${(index * 3) % duration}s">${index % 3 ? "●" : "✦"}</span>`;
+    }).join("");
+    return `<span class="moon">🪩</span>${confetti}<span class="mist mist-1"></span><span class="mist mist-2"></span>`;
+  }
+  if (kind === "junina") {
+    return `<span class="moon">🌕</span>${flyers("🏮", 3)}<span class="mist mist-1"></span><span class="mist mist-2"></span>`;
+  }
   if (kind === "pascoa") {
     return `<span class="moon">☀️</span><span class="sky-cloud sky-cloud-1">☁️</span><span class="sky-cloud sky-cloud-2">☁️</span>${flyers("🦋", 3)}<span class="mist mist-1"></span><span class="mist mist-2"></span>`;
   }
@@ -526,11 +676,16 @@ function renderThemes() {
       <button type="button" class="theme-card ${active ? "available" : ""} ${done ? "is-done" : ""}" data-theme-key="${key}" aria-pressed="${active}">
         <span class="theme-icon" aria-hidden="true">${theme.icon}</span>
         <span class="theme-copy"><strong>${theme.name}</strong><small>${theme.blurb}</small></span>
-        <span class="theme-state">${active ? "Jogando" : done ? "Concluído ✓" : "Jogar"}</span>
+        <span class="theme-state">${active ? "Jogando" : done ? "Concluído ✓" : "Jogar"}${progress.stars[key] ? `<span class="theme-stars" title="Melhor resultado">${"★".repeat(progress.stars[key])}${"☆".repeat(3 - progress.stars[key])}</span>` : ""}</span>
       </button>
     `;
   }).join("");
   const completed = THEME_KEYS.filter((key) => progress.completed[key]).length;
+  for (const button of document.querySelectorAll("[data-difficulty]")) {
+    const active = button.dataset.difficulty === progress.difficulty;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
   document.querySelector("#campaign-progress").textContent = `${completed} de ${THEME_KEYS.length} temas concluídos`;
 }
 
@@ -542,11 +697,17 @@ function renderBoard() {
     ])
   );
   const enemyAt = new Map();
+  const flyerAt = new Map();
   for (const enemy of game.enemies) {
-    const group = enemyAt.get(PATH[enemy.pathIndex]) || [];
+    const store = enemy.flying ? flyerAt : enemyAt;
+    const group = store.get(cellOf(enemy)) || [];
     group.push(enemy);
-    enemyAt.set(PATH[enemy.pathIndex], group);
+    store.set(cellOf(enemy), group);
   }
+  const starts = new Set([PATH[0], PATH_B[0]]);
+  const ends = new Set([PATH.at(-1), PATH_B.at(-1)]);
+  const reserve = !routeBActive(upcomingWave());
+  const mainSet = new Set(PATH);
   const towerAt = new Map(game.towers.map((tower) => [tower.cell, tower]));
   const bonusAt = new Map(game.bonuses.map((bonus) => [bonus.cell, bonus]));
 
@@ -557,6 +718,7 @@ function renderBoard() {
     const isRock = rockSet.has(cell);
     const classes = ["tile"];
     if (isPath) classes.push("path");
+    if (isPath && reserve && !mainSet.has(cell)) classes.push("path-reserve");
     if (isRock) classes.push("rock-tile");
     if (tower && game.inspected === cell) classes.push("inspected");
     if (tower) classes.push("tower-tile");
@@ -566,13 +728,15 @@ function renderBoard() {
     if (decor) classes.push("has-decor");
     if (enemies.length) classes.push("enemy-tile");
     if (game.selectedTower && !isPath && !isRock && !tower) classes.push("selected");
-    const enemyMarkup = enemies.map((enemy, index) => `
-      <span class="enemy-entity ${index > 0 ? "enemy-stacked" : ""} ${statusClasses(enemy)} ${enemy.type === "ogre" ? "is-boss" : ""}" data-enemy-id="${enemy.id}" aria-label="${ENEMIES[enemy.type].name}">
+    const markupFor = (list, extra = "") => list.map((enemy, index) => `
+      <span class="enemy-entity ${extra} ${index > 0 ? "enemy-stacked" : ""} ${statusClasses(enemy)} ${enemy.type === "ogre" ? "is-boss" : ""}" data-enemy-id="${enemy.id}" aria-label="${ENEMIES[enemy.type].name}">
         <span class="tile-emoji">${enemy.emoji}</span>
         <span class="enemy-status">${statusIcons(enemy)}</span>
         <span class="enemy-health"><span style="width:${Math.max(0, enemy.hp / enemy.maxHp * 100)}%"></span></span>
       </span>
     `).join("");
+    const enemyMarkup = markupFor(enemies);
+    const flyerMarkup = markupFor(flyerAt.get(cell) || [], "enemy-flying");
     const icon = enemies.length
       ? enemyMarkup
       : tower
@@ -580,14 +744,14 @@ function renderBoard() {
         : isRock
           ? `<span class="rock-item" aria-hidden="true">🪨</span>`
           : isPath
-          ? `<span class="tile-emoji path-marker" aria-hidden="true">${cell === PATH[0] ? "🚪" : cell === PATH.at(-1) ? "🕸️" : ""}</span>`
+          ? `<span class="tile-emoji path-marker" aria-hidden="true">${starts.has(cell) ? "🚪" : ends.has(cell) ? "🕸️" : ""}</span>`
           : decor
             ? `<span class="decor decor-${decorKind(decor)}" aria-hidden="true">${decor}</span>`
             : bonus
               ? `<span class="bonus-item ${bonus.life <= 5 ? "is-expiring" : ""}" data-bonus-id="${bonus.id}" role="img" aria-label="${bonus.name}: clique para ganhar ${bonus.value} moedas">${bonus.emoji}<span class="bonus-ring"></span></span>`
               : "";
     const label = tower ? `${tower.name} nível ${tower.level}, casa ${cell + 1}, vida ${tower.hp} de ${tower.maxHp}` : isPath ? "Caminho" : isRock ? "Pedra: não é possível construir" : `Espaço livre ${cell + 1}`;
-    return `<button class="${classes.join(" ")}" type="button" role="gridcell" data-cell="${cell}" aria-label="${label}">${icon}</button>`;
+    return `<button class="${classes.join(" ")}" type="button" role="gridcell" data-cell="${cell}" aria-label="${label}">${icon}${flyerMarkup}</button>`;
   }).join("");
 
   if (reduceMotion.matches) return;
@@ -627,7 +791,7 @@ function statusIcons(enemy) {
 
 function decorKind(emoji) {
   if (["🌲", "🌳"].includes(emoji)) return "tree";
-  if (["🏚️", "⚰️", "🦉", "🏠", "⛪", "🛷", "🏡", "⛲", "🐓", "🏞️", "🦌"].includes(emoji)) return "landmark";
+  if (["🏚️", "⚰️", "🦉", "🏠", "⛪", "🛷", "🏡", "⛲", "🐓", "🏞️", "🦌", "🏟️", "🎡", "🎠", "🎪"].includes(emoji)) return "landmark";
   if (["🕯️"].includes(emoji)) return "pumpkin";
   return "small";
 }
@@ -744,6 +908,10 @@ function flushCombatEffects() {
       showFloatingText(effect.cell, "Destruída!", "text-destroyed");
       continue;
     }
+    if (effect.type === "impact") {
+      showImpact(effect.cell, effect.color, 2.2);
+      continue;
+    }
     if (effect.type === "note") {
       showFloatingText(effect.cell, effect.text, effect.className);
       continue;
@@ -783,8 +951,10 @@ function enemyTooltip(id) {
   const weak = Object.entries(enemy.mods).filter(([, value]) => value > 1).map(([key]) => ELEMENT_LABELS[key]);
   const resist = Object.entries(enemy.mods).filter(([, value]) => value < 1).map(([key]) => ELEMENT_LABELS[key]);
   const immune = enemy.immune.map((key) => STATUS_INFO[key].label.toLowerCase());
+  const airTowers = Object.values(TOWERS).filter((tower) => tower.air).map((tower) => tower.name);
   return [
     enemy.name,
+    enemy.flying ? `voador (só ${airTowers.join(", ")})` : "",
     weak.length ? `fraco a ${weak.join(", ")}` : "",
     resist.length ? `resiste a ${resist.join(", ")}` : "",
     immune.length ? `imune a ${immune.join(", ")}` : "",
@@ -946,6 +1116,7 @@ function applyResearch() {
   for (const [type, level] of Object.entries(game.pendingResearch)) {
     game.research[type] = level;
     done.push(`${TOWERS[type].name} nível ${level}`);
+    if (level >= RESEARCH_MAX_LEVEL) unlockAchievement("scientist");
     for (const tower of game.towers.filter((item) => item.type === type)) {
       const stats = levelStats(TOWERS[type], level);
       tower.hp += stats.hp - tower.maxHp;
@@ -976,6 +1147,9 @@ function renderInspector() {
   button.disabled = cost === 0 || blocked;
   button.textContent = cost ? `🔧 Reparar (${cost} 🪙)` : "🔧 Em perfeito estado";
   button.title = blocked && cost ? "O reparo só é possível entre os turnos." : "";
+  const sellButton = inspectorElement.querySelector("#inspector-sell");
+  sellButton.textContent = `💰 Vender (+${Math.round(tower.price * SELL_RATE)} 🪙)`;
+  sellButton.disabled = game.phase === "victory" || game.phase === "defeat";
 }
 
 function repairTower(tower) {
@@ -997,6 +1171,215 @@ function repairTower(tower) {
   GameAudio.play("repair");
   game.message = points < missing ? `${tower.name}: reparo parcial, faltaram moedas.` : `${tower.name} reparada!`;
   render();
+}
+
+function unlockAchievement(id) {
+  if (progress.achievements[id]) return;
+  const item = ACHIEVEMENTS.find((achievement) => achievement.id === id);
+  if (!item) return;
+  progress.achievements[id] = true;
+  saveProgress();
+  showToast(`${item.icon} Conquista desbloqueada: ${item.name}!`);
+  GameAudio.play("bonus");
+  renderAchievements();
+}
+
+function showToast(text) {
+  const toast = document.createElement("div");
+  toast.className = "toast-item";
+  toast.textContent = text;
+  toastElement.append(toast);
+  window.setTimeout(() => toast.remove(), 4500);
+}
+
+function renderAchievements() {
+  const done = ACHIEVEMENTS.filter((item) => progress.achievements[item.id]).length;
+  document.querySelector("#achievements-count").textContent = `${done}/${ACHIEVEMENTS.length}`;
+  document.querySelector("#achievements-list").innerHTML = ACHIEVEMENTS.map((item) => {
+    const got = progress.achievements[item.id];
+    return `<li class="achievement ${got ? "is-done" : ""}"><span class="achievement-icon">${got ? item.icon : "🔒"}</span><span><strong>${item.name}</strong><small>${item.desc}</small></span></li>`;
+  }).join("");
+}
+
+function useAbility(key) {
+  const ability = ABILITIES[key];
+  if (!ability || game.phase !== "wave" || game.paused) return;
+  if (game.abilityCd[key] > 0) {
+    GameAudio.play("error");
+    return;
+  }
+  const level = levelOf(game.wave);
+  if (key === "meteor") {
+    const damage = 30 + level * 7;
+    for (const enemy of game.enemies) {
+      enemy.hp -= damage;
+      addCombatEffect({ type: "impact", cell: cellOf(enemy), color: "#ff7a3c" });
+    }
+    GameAudio.play("towerDestroyed", null, 0.05);
+    collectDefeated();
+  } else if (key === "freeze") {
+    for (const enemy of game.enemies) applyStatus(enemy, { status: "freeze", ticks: 4 });
+    GameAudio.play("status", "freeze");
+  } else {
+    for (const tower of game.towers) {
+      const amount = Math.min(Math.ceil(tower.maxHp * 0.4), tower.maxHp - tower.hp);
+      if (amount > 0) {
+        tower.hp += amount;
+        addCombatEffect({ type: "note", cell: tower.cell, text: `+${amount} ❤`, className: "text-heal" });
+      }
+    }
+    GameAudio.play("repair");
+  }
+  game.abilityCd[key] = ability.cooldown;
+  if (!game.abilitiesUsed.includes(key)) game.abilitiesUsed.push(key);
+  if (game.abilitiesUsed.length === Object.keys(ABILITIES).length) unlockAchievement("strategist");
+  game.message = `${ability.icon} ${ability.name}!`;
+  render();
+}
+
+function renderAbilities() {
+  abilityBar.hidden = game.phase !== "wave";
+  for (const button of abilityBar.querySelectorAll("[data-ability]")) {
+    const key = button.dataset.ability;
+    const cooldown = game.abilityCd[key] || 0;
+    const seconds = Math.ceil((cooldown * TICK_MS) / gameSpeed / 1000);
+    button.disabled = game.paused || cooldown > 0;
+    button.querySelector(".ability-timer").textContent = cooldown > 0 ? `${seconds}s` : "pronta";
+  }
+}
+
+function sellTower(tower) {
+  if (game.phase === "victory" || game.phase === "defeat") return;
+  const value = Math.round(tower.price * SELL_RATE);
+  game.towers = game.towers.filter((item) => item !== tower);
+  game.coins += value;
+  game.inspected = null;
+  progress.stats.sold += 1;
+  if (progress.stats.sold >= 5) unlockAchievement("recycler");
+  saveProgress();
+  addCombatEffect({ type: "note", cell: tower.cell, text: `+${value} 🪙`, className: "text-bonus" });
+  GameAudio.play("bonus");
+  game.message = `${tower.name} vendida por ${value} moedas.`;
+  render();
+}
+
+function computeRangePreview() {
+  if (game.selectedTower && hoverCell !== null && !pathSet.has(hoverCell) && !rockSet.has(hoverCell)) {
+    const stats = levelStats(TOWERS[game.selectedTower], game.research[game.selectedTower] || 1);
+    const range = TOWERS[game.selectedTower].range ? stats.range : stats.heal?.range || 0;
+    return range ? { cell: hoverCell, range } : null;
+  }
+  const tower = !game.selectedTower && game.towers.find((item) => item.cell === hoverCell) || inspectedTower();
+  return tower && rangeOf(tower) ? { cell: tower.cell, range: rangeOf(tower) } : null;
+}
+
+function applyRangePreview() {
+  const preview = computeRangePreview();
+  const tiles = board.children;
+  for (let cell = 0; cell < tiles.length; cell += 1) {
+    const inRange = Boolean(preview) && distanceBetweenCells(preview.cell, cell) <= preview.range;
+    tiles[cell].classList.toggle("in-range", inRange);
+    tiles[cell].classList.toggle("range-origin", Boolean(preview) && cell === preview.cell);
+  }
+}
+
+function setDifficulty(key) {
+  if (key === progress.difficulty || !DIFFICULTIES[key]) return;
+  const inProgress = game.wave > 0 && game.phase !== "victory" && game.phase !== "defeat";
+  if (inProgress && !window.confirm(`Mudar para a dificuldade ${DIFFICULTIES[key].name}? A partida atual será reiniciada.`)) return;
+  progress.difficulty = key;
+  saveProgress();
+  resetGame(`Dificuldade ${DIFFICULTIES[key].name}: ${DIFFICULTIES[key].coins} moedas e ${DIFFICULTIES[key].lives} vidas. Posicione suas defesas!`);
+}
+
+function starsFor(lives, maxLives) {
+  const ratio = lives / maxLives;
+  return ratio >= 0.8 ? 3 : ratio >= 0.4 ? 2 : 1;
+}
+
+function persistGame() {
+  try {
+    if (game.phase === "victory" || game.phase === "defeat") {
+      localStorage.removeItem(GAME_SAVE_KEY);
+      return;
+    }
+    if (game.phase === "wave") return;
+    localStorage.setItem(GAME_SAVE_KEY, JSON.stringify({
+      v: 1,
+      theme: currentTheme,
+      difficulty: progress.difficulty,
+      path: PATH,
+      pathB: PATH_B,
+      sky: SKY,
+      rocks: [...rockSet],
+      mapSeed,
+      wave: game.wave,
+      phase: game.phase,
+      coins: game.coins,
+      lives: game.lives,
+      maxLives: game.maxLives,
+      research: game.research,
+      pendingResearch: game.pendingResearch,
+      lostPending: game.lostPending,
+      towersLost: game.towersLost,
+      towers: game.towers.map((tower) => ({ type: tower.type, cell: tower.cell, hp: tower.hp, level: tower.level })),
+    }));
+  } catch (error) {
+    console.error("Não foi possível salvar a partida.", error);
+  }
+}
+
+function restoreGame() {
+  try {
+    const raw = localStorage.getItem(GAME_SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    const cells = COLUMNS * ROWS;
+    const validCells = (list, min = 0) => Array.isArray(list) && list.length >= min && list.every((cell) => Number.isInteger(cell) && cell >= 0 && cell < cells);
+    if (data.v !== 1 || !THEME_KEYS.includes(data.theme) || !DIFFICULTIES[data.difficulty]) return false;
+    if (!validCells(data.path, 2) || !validCells(data.pathB, 2) || !validCells(data.sky, 2) || !validCells(data.rocks)) return false;
+    if (!Number.isInteger(data.wave) || data.wave < 0 || data.wave >= TOTAL_WAVES) return false;
+    if (!["preparation", "intermission"].includes(data.phase)) return false;
+    if (![data.coins, data.lives, data.maxLives].every(Number.isFinite)) return false;
+    if (!Array.isArray(data.towers)) return false;
+    if (data.theme !== currentTheme) applyTheme(data.theme);
+    for (const entry of data.towers) {
+      if (!TOWERS[entry.type] || !Number.isInteger(entry.cell) || entry.cell < 0 || entry.cell >= cells) return false;
+    }
+    progress.difficulty = data.difficulty;
+    PATH.splice(0, PATH.length, ...data.path);
+    PATH_B.splice(0, PATH_B.length, ...data.pathB);
+    SKY.splice(0, SKY.length, ...data.sky);
+    rebuildPathSet();
+    rockSet.clear();
+    for (const cell of data.rocks) rockSet.add(cell);
+    mapSeed = Number.isFinite(data.mapSeed) ? data.mapSeed : 0;
+    if (game && game.interval) window.clearInterval(game.interval);
+    game = createGame();
+    Object.assign(game, {
+      wave: data.wave,
+      phase: data.phase,
+      coins: data.coins,
+      lives: data.lives,
+      maxLives: data.maxLives,
+      research: data.research && typeof data.research === "object" ? data.research : {},
+      pendingResearch: data.pendingResearch && typeof data.pendingResearch === "object" ? data.pendingResearch : {},
+      lostPending: Number(data.lostPending) || 0,
+      towersLost: Number(data.towersLost) || 0,
+    });
+    for (const entry of data.towers) {
+      const config = TOWERS[entry.type];
+      const level = Math.min(RESEARCH_MAX_LEVEL, Math.max(1, Number(entry.level) || 1));
+      const stats = levelStats(config, level);
+      game.towers.push({ ...config, ...stats, type: entry.type, level, cell: entry.cell, cooldown: 0, maxHp: stats.hp, hp: Math.min(stats.hp, Number(entry.hp) || stats.hp) });
+    }
+    game.message = `Partida restaurada: continue do turno ${game.wave + 1}.`;
+    render();
+    return true;
+  } catch (error) {
+    console.error("Não foi possível restaurar a partida salva.", error);
+    return false;
+  }
 }
 
 function repairCost() {
@@ -1032,6 +1415,8 @@ function render() {
   renderBoard();
   renderInspector();
   renderResearch();
+  renderAbilities();
+  applyRangePreview();
   flushCombatEffects();
   renderWavePanel();
   coinsElement.textContent = game.coins;
@@ -1079,6 +1464,8 @@ function render() {
   repairButton.hidden = !game.towers.length;
   repairButton.disabled = cost === 0 || game.phase === "wave" || game.phase === "victory" || game.phase === "defeat";
   repairButton.textContent = cost ? `🔧 Reparar defesas (${cost} 🪙)` : "🔧 Defesas em perfeito estado";
+  speedButton.textContent = `⏩ Velocidade ${gameSpeed}×`;
+  persistGame();
 }
 
 function selectTower(type) {
@@ -1169,19 +1556,41 @@ function beginWave() {
   game.message = `Turno ${game.wave}: ${game.waveTotal} invasores estão chegando!${evolved.length ? ` Evoluções prontas: ${evolved.join(", ")}.` : ""}`;
   GameAudio.setIntensity(1);
   GameAudio.play("waveStart");
+  game.abilityCd = {};
+  game.abilitiesUsed = [];
+  game.spawned = 0;
+  if (routeBActive(game.wave)) game.message += " 🔀 Invasores também chegam pela segunda rota!";
   render();
-  game.interval = window.setInterval(advanceWave, TICK_MS);
+  startLoop();
+}
+
+function startLoop() {
+  window.clearInterval(game.interval);
+  game.interval = window.setInterval(advanceWave, TICK_MS / gameSpeed);
+}
+
+function cycleSpeed() {
+  gameSpeed = SPEEDS[(SPEEDS.indexOf(gameSpeed) + 1) % SPEEDS.length];
+  GameAudio.play("select");
+  if (game.phase === "wave" && !game.paused) startLoop();
+  setMessage(`Velocidade do jogo: ${gameSpeed}×.`);
 }
 
 function spawnEnemy() {
   const type = game.queue.shift();
   const config = ENEMIES[type];
   if (Math.random() < VOICE_CHANCE.spawn) GameAudio.play("enemySpawn", type);
-  const maxHp = Math.round((30 + levelOf(game.wave) * 8) * config.hp);
+  const maxHp = Math.round((30 + levelOf(game.wave) * 8) * config.hp * DIFFICULTIES[progress.difficulty].hp);
+  let route = PATH;
+  if (config.flying) route = SKY;
+  else if (routeBActive(game.wave) && game.spawned % 2 === 1) route = PATH_B;
+  game.spawned += 1;
   game.enemies.push({
     id: String(++nextEnemyId),
     type,
     emoji: config.emoji,
+    route,
+    flying: Boolean(config.flying),
     pathIndex: 0,
     hp: maxHp,
     maxHp,
@@ -1213,7 +1622,7 @@ function canAttack(enemy) {
 
 function applyStatus(enemy, effect) {
   const config = ENEMIES[enemy.type];
-  const cell = PATH[enemy.pathIndex];
+  const cell = cellOf(enemy);
   if (effect.chance && Math.random() > effect.chance) return;
   if (config.immune.includes(effect.status)) {
     addCombatEffect({ type: "note", cell, text: "Imune!", className: "text-note" });
@@ -1233,7 +1642,7 @@ function hitEnemy(enemy, tower, factor, primary) {
   const critical = primary && tower.crit && Math.random() < tower.crit;
   if (critical) damage *= 2;
   enemy.hp -= Math.round(damage);
-  const cell = PATH[enemy.pathIndex];
+  const cell = cellOf(enemy);
   if (critical) addCombatEffect({ type: "note", cell, text: "Crítico!", className: "text-crit" });
   else if (primary && modifier > 1) addCombatEffect({ type: "note", cell, text: "Fraco!", className: "text-weak" });
   else if (primary && modifier < 1) addCombatEffect({ type: "note", cell, text: "Resiste", className: "text-note" });
@@ -1339,24 +1748,30 @@ function stepWave() {
     }
   }
 
-  const escaped = game.enemies.filter((enemy) => enemy.pathIndex >= PATH.length).length;
+  const escaped = game.enemies.filter((enemy) => enemy.pathIndex >= enemy.route.length).length;
   if (escaped) {
     game.lives -= escaped;
     game.escaped += escaped;
     GameAudio.play("escaped");
   }
-  game.enemies = game.enemies.filter((enemy) => enemy.pathIndex < PATH.length);
+  game.enemies = game.enemies.filter((enemy) => enemy.pathIndex < enemy.route.length);
 
   enemiesAttackTowers();
   towersSupport();
   towersAttackEnemies();
+  collectDefeated();
+  for (const key of Object.keys(game.abilityCd)) if (game.abilityCd[key] > 0) game.abilityCd[key] -= 1;
+}
 
+function collectDefeated() {
   const survivors = [];
   for (const enemy of game.enemies) {
     if (enemy.hp <= 0) {
       game.coins += Math.round((17 + levelOf(game.wave) * 0.6) * ENEMIES[enemy.type].reward);
       game.defeated += 1;
-      addCombatEffect({ type: "destroyed", cell: PATH[enemy.pathIndex], emoji: enemy.emoji });
+      progress.stats.defeated += 1;
+      if (enemy.flying) progress.stats.flyers += 1;
+      addCombatEffect({ type: "destroyed", cell: cellOf(enemy), emoji: enemy.emoji });
       GameAudio.play("destroyed", null, 0.24);
       if (Math.random() < VOICE_CHANCE.death) GameAudio.play("enemyDeath", enemy.type, 0.3);
     } else {
@@ -1364,6 +1779,8 @@ function stepWave() {
     }
   }
   game.enemies = survivors;
+  if (progress.stats.defeated >= 500) unlockAchievement("exterminator");
+  if (progress.stats.flyers >= 30) unlockAchievement("sky_hunter");
 }
 
 function enemiesAttackTowers() {
@@ -1374,7 +1791,7 @@ function enemiesAttackTowers() {
       enemy.attackCd -= 1;
       continue;
     }
-    const enemyCell = PATH[enemy.pathIndex];
+    const enemyCell = cellOf(enemy);
     let target;
     let best = Infinity;
     for (const tower of game.towers) {
@@ -1386,7 +1803,7 @@ function enemiesAttackTowers() {
       }
     }
     if (!target) continue;
-    const damage = Math.round(config.attack.damage * (1 + levelOf(game.wave) * 0.03));
+    const damage = Math.round(config.attack.damage * (1 + levelOf(game.wave) * 0.03) * DIFFICULTIES[progress.difficulty].dmg);
     target.hp -= damage;
     target.hitAt = game.tick;
     enemy.attackCd = config.attack.cooldown;
@@ -1437,15 +1854,15 @@ function towersAttackEnemies() {
     }
     let target;
     for (const enemy of game.enemies) {
-      if (enemy.hp <= 0) continue;
-      if (distanceBetweenCells(tower.cell, PATH[enemy.pathIndex]) > tower.range) continue;
-      if (!target || enemy.pathIndex > target.pathIndex) target = enemy;
+      if (enemy.hp <= 0 || (enemy.flying && !tower.air)) continue;
+      if (distanceBetweenCells(tower.cell, cellOf(enemy)) > tower.range) continue;
+      if (!target || enemy.pathIndex / enemy.route.length > target.pathIndex / target.route.length) target = enemy;
     }
     if (!target) continue;
     addCombatEffect({
       type: "shot",
       from: tower.cell,
-      to: PATH[target.pathIndex],
+      to: cellOf(target),
       glyph: tower.glyph,
       color: tower.color,
       splash: Boolean(tower.splash),
@@ -1455,7 +1872,7 @@ function towersAttackEnemies() {
     hitEnemy(target, tower, 1, true);
     if (tower.splash) {
       for (const enemy of game.enemies) {
-        if (enemy !== target && enemy.hp > 0 && distanceBetweenCells(PATH[enemy.pathIndex], PATH[target.pathIndex]) <= tower.splash) {
+        if (enemy !== target && enemy.hp > 0 && distanceBetweenCells(cellOf(enemy), cellOf(target)) <= tower.splash) {
           hitEnemy(enemy, tower, 0.6, false);
         }
       }
@@ -1518,16 +1935,26 @@ function concludeWave(won) {
     game.message = `Fase ${name} concluída! Escolha outro tema quando quiser.`;
     GameAudio.play("victory");
     showWaveBanner("Fase concluída!", `${name} · escolha outro tema`, "is-victory");
-    showCongrats(name);
+    showCongrats(name, stars);
     progress.completed[currentTheme] = true;
+    const stars = starsFor(game.lives, game.maxLives);
+    progress.stars[currentTheme] = Math.max(progress.stars[currentTheme] || 0, stars);
+    unlockAchievement("first_win");
+    if (THEME_KEYS.every((key) => progress.completed[key])) unlockAchievement("all_themes");
+    if (game.lives === game.maxLives) unlockAchievement("flawless");
+    if (stars === 3) unlockAchievement("three_stars");
+    if (progress.difficulty === "hard") unlockAchievement("hard_win");
     if (!saveProgress()) game.message += " (Não foi possível salvar o progresso neste navegador.)";
   } else {
+    if (game.coins >= 1500) unlockAchievement("rich");
+    if (game.wave >= 5 && game.towersLost === 0 && game.towers.length) unlockAchievement("wall");
     const bonusText = game.bonusCollected ? ` Bônus coletados: ${game.bonusCollected} (+${game.bonusCoins} 🪙).` : "";
     const lost = (game.towersLost ? ` ${game.towersLost} defesa(s) caiu(caíram) — recompre ou repare.` : "") + bonusText;
     const unlockedType = UNLOCK_ORDER[START_TOWERS + game.wave - 1];
     const unlockText = unlockedType ? ` 🔓 Nova defesa liberada: ${TOWERS[unlockedType].emoji} ${TOWERS[unlockedType].name}!` : "";
     showWaveBanner(`Turno ${game.wave} concluído!`, `${game.defeated} derrotados · próximo: ${waveSize(game.wave + 1)} invasores${unlockedType ? ` · 🔓 Nova defesa: ${TOWERS[unlockedType].emoji} ${TOWERS[unlockedType].name}` : ""}`);
-    game.message = `Turno ${game.wave} concluído! O turno ${game.wave + 1} terá ${waveSize(game.wave + 1)} invasores.${unlockText}${lost} Reforce a defesa.`;
+    const routeText = game.wave + 1 === ROUTE_B_FROM_WAVE ? " 🔀 No próximo turno os invasores também usarão a segunda rota (esmaecida no mapa)." : "";
+    game.message = `Turno ${game.wave} concluído! O turno ${game.wave + 1} terá ${waveSize(game.wave + 1)} invasores.${unlockText}${routeText}${lost} Reforce a defesa.`;
     GameAudio.play("waveClear");
   }
 }
@@ -1538,8 +1965,7 @@ function setPaused(paused) {
   if (paused) {
     window.clearInterval(game.interval);
   } else if (game.phase === "wave") {
-    window.clearInterval(game.interval);
-    game.interval = window.setInterval(advanceWave, TICK_MS);
+    startLoop();
   }
   GameAudio.setPaused(paused);
   if (!paused) GameAudio.play("select");
@@ -1552,10 +1978,11 @@ function showDefeat() {
   defeatOverlay.hidden = false;
 }
 
-function showCongrats(themeName) {
+function showCongrats(themeName, stars) {
   const overlay = document.querySelector("#congrats");
   const next = THEME_KEYS.filter((key) => !progress.completed[key] && key !== currentTheme);
   document.querySelector("#congrats-title").textContent = `Parabéns! Tema ${themeName} concluído!`;
+  document.querySelector("#congrats-stars").textContent = `${"★".repeat(stars)}${"☆".repeat(3 - stars)}`;
   document.querySelector("#congrats-text").textContent =
     `Você defendeu todos os ${TOTAL_WAVES} turnos com ${game.lives} vida(s) restante(s), ${game.towers.length} defesa(s) de pé e ${game.coins} moedas.` +
     (next.length ? ` Ainda faltam: ${next.map((key) => THEME_DEFS[key].name).join(" e ")}.` : " Você concluiu todos os temas da campanha — lenda das datas comemorativas! 🏆");
@@ -1636,6 +2063,33 @@ document.querySelector("#inspector-repair").addEventListener("click", () => {
   const tower = inspectedTower();
   if (tower) repairTower(tower);
 });
+document.querySelector("#inspector-sell").addEventListener("click", () => {
+  const tower = inspectedTower();
+  if (tower) sellTower(tower);
+});
+speedButton.addEventListener("click", cycleSpeed);
+abilityBar.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-ability]");
+  if (button) useAbility(button.dataset.ability);
+});
+board.addEventListener("mouseover", (event) => {
+  const tile = event.target.closest("[data-cell]");
+  const cell = tile ? Number(tile.dataset.cell) : null;
+  if (cell === hoverCell) return;
+  hoverCell = cell;
+  applyRangePreview();
+});
+board.addEventListener("mouseleave", () => {
+  hoverCell = null;
+  applyRangePreview();
+});
+const achievementsOverlay = document.querySelector("#achievements");
+document.querySelector("#achievements-button").addEventListener("click", () => { achievementsOverlay.hidden = false; });
+document.querySelector("#achievements-close").addEventListener("click", () => { achievementsOverlay.hidden = true; });
+document.querySelector(".difficulty-picker").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-difficulty]");
+  if (button) setDifficulty(button.dataset.difficulty);
+});
 document.querySelector("#inspector-close").addEventListener("click", () => {
   game.inspected = null;
   render();
@@ -1675,12 +2129,16 @@ document.querySelector("#tutorial-button").addEventListener("click", openTutoria
 document.querySelector("#tutorial-close").addEventListener("click", closeTutorial);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    if (!tutorialOverlay.hidden) closeTutorial();
+    if (!achievementsOverlay.hidden) achievementsOverlay.hidden = true;
+    else if (!tutorialOverlay.hidden) closeTutorial();
     else if (game.selectedTower) cancelSelection();
     else if (game.inspected !== null) {
       game.inspected = null;
       render();
     }
+  }
+  if (["1", "2", "3"].includes(event.key) && !event.target.closest("input, textarea") && !event.ctrlKey && !event.metaKey) {
+    useAbility(["meteor", "freeze", "heal"][Number(event.key) - 1]);
   }
   if ((event.key === "p" || event.key === "P") && !event.ctrlKey && !event.metaKey && game.phase === "wave") setPaused(!game.paused);
 });
@@ -1700,7 +2158,8 @@ volumeSlider.addEventListener("change", () => GameAudio.play("select"));
 musicButton.addEventListener("click", toggleMusic);
 sfxButton.addEventListener("click", toggleSfx);
 applyTheme(progress.lastTheme);
-resetGame(storageNotice || "Posicione suas defesas e inicie o primeiro turno.");
+renderAchievements();
+if (!restoreGame()) resetGame(storageNotice || "Posicione suas defesas e inicie o primeiro turno.");
 try {
   if (!localStorage.getItem(TUTORIAL_KEY)) openTutorial();
 } catch (error) {
