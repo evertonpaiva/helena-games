@@ -32,6 +32,10 @@
             <input id="volume-slider" type="range" min="0" max="100" step="1" value="80" aria-label="Volume geral">
             <output id="volume-value" for="volume-slider">80%</output>
           </label>
+          <button class="music-toggle" id="tutorial-button" type="button">
+            <span class="music-icon" aria-hidden="true">❓</span>
+            <span>Tutorial</span>
+          </button>
           <div class="local-badge"><span></span> Jogo local</div>
         </div>
       </header>
@@ -75,6 +79,7 @@
             <div class="dock-header">
               <h2 id="shop-title">Loja de defesas</h2>
               <p class="shop-hint" id="shop-hint">Escolha uma defesa e depois um espaço livre no mapa.</p>
+              <button class="cancel-button" id="cancel-button" type="button" hidden>✕ Cancelar seleção (Esc)</button>
             </div>
             <div class="shop-items" id="shop-items"></div>
             <div class="tower-inspector" id="tower-inspector" hidden>
@@ -156,6 +161,21 @@
         <h2 id="defeat-title">Você perdeu!</h2>
         <p id="defeat-text"></p>
         <button class="primary-button" id="defeat-restart" type="button">↺ Tentar novamente</button>
+      </div>
+    </div>
+    <div class="congrats tutorial-overlay" id="tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" hidden>
+      <div class="congrats-card tutorial-card">
+        <h2 id="tutorial-title">Como jogar</h2>
+        <ol class="tutorial-steps">
+          <li><strong>Objetivo:</strong> impeça que os invasores atravessem o caminho. Cada um que escapa custa uma vida ❤️; sobreviva a todos os 10 turnos.</li>
+          <li><strong>Posicione defesas:</strong> escolha uma na loja abaixo do mapa e clique em um espaço livre (não vale caminho nem pedras 🪨). Para desistir, use <kbd>Esc</kbd> ou o botão Cancelar.</li>
+          <li><strong>Inicie o turno:</strong> clique em "Iniciar turno". Você pode comprar defesas durante o turno e coletar os bônus que aparecem no mapa.</li>
+          <li><strong>Novas defesas:</strong> o jogo começa com 2 defesas; uma nova é liberada a cada turno concluído.</li>
+          <li><strong>Repare:</strong> invasores atacam as defesas. Entre turnos, clique numa defesa para repará-la ou use "Reparar defesas".</li>
+          <li><strong>Pesquise:</strong> no painel Pesquisa, evolua as defesas. A evolução vale a partir do turno seguinte.</li>
+          <li><strong>Dicas:</strong> cada invasor tem fraquezas e imunidades (passe o mouse no painel Invasores). <kbd>P</kbd> pausa o jogo. Escolha o tema que quiser a qualquer momento.</li>
+        </ol>
+        <button class="primary-button" id="tutorial-close" type="button">Entendi, vamos jogar!</button>
       </div>
     </div>
     <div class="congrats pause-overlay" id="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>

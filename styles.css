@@ -168,6 +168,7 @@ h2 {
   padding: 8px 12px;
   border: 1px solid #343047;
   border-radius: 99px;
+  background: #1b1828;
   color: #d3cede;
   font-size: 12px;
 }
@@ -2255,3 +2256,40 @@ body[data-theme="ambiente"] .moon {
 
 body[data-theme="ambiente"] .legend-path { background: #4fa8d8; border-color: #bfe8ff; }
 body[data-theme="ambiente"] footer { color: #ffffffcc; }
+
+.cancel-button {
+  margin-left: auto;
+  padding: 5px 10px;
+  border: 1px solid #d48e53;
+  border-radius: 8px;
+  background: #3a2a2e;
+  color: #ffd19d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cancel-button:hover {
+  background: #4a343a;
+}
+
+.cancel-button[hidden] {
+  display: none;
+}
+
+.tutorial-card {
+  max-width: 560px;
+  text-align: left;
+}
+
+.tutorial-steps {
+  margin: 12px 0 4px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tutorial-steps li + li {
+  margin-top: 8px;
+}

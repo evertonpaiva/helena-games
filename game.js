@@ -317,6 +317,9 @@ const towerCountElement = document.querySelector("#tower-count");
 const waveCounter = document.querySelector("#wave-counter");
 const messageElement = document.querySelector("#game-message");
 const shopHint = document.querySelector("#shop-hint");
+const cancelButton = document.querySelector("#cancel-button");
+const tutorialOverlay = document.querySelector("#tutorial");
+const TUTORIAL_KEY = "tower-defense-feriados-tutorial-v1";
 const turnButton = document.querySelector("#turn-button");
 const pauseButton = document.querySelector("#pause-button");
 const pauseOverlay = document.querySelector("#pause-overlay");
@@ -1052,6 +1055,7 @@ function render() {
     button.disabled = !canShop || !isUnlocked(button.dataset.tower) || game.coins < tower.price;
     button.classList.toggle("selected", game.selectedTower === button.dataset.tower);
   }
+  cancelButton.hidden = !game.selectedTower;
   shopHint.textContent = game.selectedTower
       ? "Agora escolha um espaço livre no mapa para posicionar."
       : "Escolha uma defesa e depois um espaço livre no mapa.";
@@ -1645,7 +1649,39 @@ turnButton.addEventListener("click", requestWave);
 pauseButton.addEventListener("click", () => setPaused(!game.paused));
 document.querySelector("#resume-button").addEventListener("click", () => setPaused(false));
 document.querySelector("#defeat-restart").addEventListener("click", () => resetGame("Nova rota gerada! Posicione suas defesas e inicie o primeiro turno."));
+function cancelSelection() {
+  if (!game.selectedTower) return;
+  game.selectedTower = null;
+  GameAudio.play("select");
+  setMessage("Posicionamento cancelado.");
+}
+
+function openTutorial() {
+  tutorialOverlay.hidden = false;
+  document.querySelector("#tutorial-close").focus();
+}
+
+function closeTutorial() {
+  tutorialOverlay.hidden = true;
+  try {
+    localStorage.setItem(TUTORIAL_KEY, "1");
+  } catch (error) {
+    console.error("Não foi possível salvar o tutorial visto.", error);
+  }
+}
+
+cancelButton.addEventListener("click", cancelSelection);
+document.querySelector("#tutorial-button").addEventListener("click", openTutorial);
+document.querySelector("#tutorial-close").addEventListener("click", closeTutorial);
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (!tutorialOverlay.hidden) closeTutorial();
+    else if (game.selectedTower) cancelSelection();
+    else if (game.inspected !== null) {
+      game.inspected = null;
+      render();
+    }
+  }
   if ((event.key === "p" || event.key === "P") && !event.ctrlKey && !event.metaKey && game.phase === "wave") setPaused(!game.paused);
 });
 themeList.addEventListener("click", (event) => {
@@ -1665,3 +1701,8 @@ musicButton.addEventListener("click", toggleMusic);
 sfxButton.addEventListener("click", toggleSfx);
 applyTheme(progress.lastTheme);
 resetGame(storageNotice || "Posicione suas defesas e inicie o primeiro turno.");
+try {
+  if (!localStorage.getItem(TUTORIAL_KEY)) openTutorial();
+} catch (error) {
+  openTutorial();
+}

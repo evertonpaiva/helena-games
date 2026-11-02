@@ -60,7 +60,7 @@ Natal, Páscoa e Dia do Meio Ambiente; os temas podem ser escolhidos livremente 
    Animações de bob desaceleradas. Save v2 (migra o v1).
 
 Ao retomar o trabalho em outra máquina ou sessão, leia este arquivo e o
-`README.md` dentro de `jogos`. Preserve as decisões registradas e atualize o
+`README.md` na raiz do projeto. Preserve as decisões registradas e atualize o
 estado desta sequência ao concluir ou alterar uma etapa.
 
 ## Regras provisórias da primeira fase
@@ -93,3 +93,4 @@ estado desta sequência ao concluir ou alterar uma etapa.
    - Reparo individual: clicar na defesa abre o inspetor (`renderInspector`/`repairTower`); só entre turnos.
    - Pesquisa: `game.research` (níveis aplicados) e `game.pendingResearch` (pagas, aplicadas em `beginWave` via `applyResearch`); decisão do usuário: "próxima fase" = turno seguinte no mesmo mapa. Níveis até `RESEARCH_MAX_LEVEL = 3`, bônus em `RESEARCH_BONUS`.
    - Tema `ambiente` em `THEME_DEFS`, CSS `body[data-theme="ambiente"]` e perfil musical em `audio.js`.
+7. **Rodada tutorial/cancelar:** modal de tutorial automático na 1ª visita + botão no cabeçalho, botão/tecla Esc para cancelar seleção de defesa, fundo do selo "Jogo local". Aguardando validação.

@@ -9,17 +9,10 @@ Abra `index.html` no navegador. Para executar por um servidor local, escolha
 uma das opções:
 
 ```sh
-# Na raiz do repositório:
-python3 -m http.server 8000 --directory jogos
-
-# Ou dentro da pasta jogos:
-cd jogos
 python3 -m http.server 8000
 ```
 
-Em qualquer uma dessas opções, acesse <http://localhost:8000>. Não acrescente
-`/jogos` ao endereço quando usar `--directory jogos`. Se iniciar o servidor na
-raiz sem `--directory jogos`, acesse <http://localhost:8000/jogos/>.
+Acesse <http://localhost:8000>.
 
 ### Servidor na rede local
 
@@ -28,7 +21,7 @@ raiz sem `--directory jogos`, acesse <http://localhost:8000/jogos/>.
 ./servidor.sh 9000   # outra porta
 ```
 
-O script (na raiz do projeto, `jogos/`) serve a pasta em `0.0.0.0` e imprime
+O script (na raiz do projeto) serve a pasta em `0.0.0.0` e imprime
 os endereços `http://localhost:PORTA` e `http://IP-DA-MAQUINA:PORTA` para abrir
 em outros aparelhos da mesma rede. Pode ser necessário liberar a porta no
 firewall. Não há autenticação: use apenas em redes confiáveis.
@@ -96,6 +89,8 @@ escaparam, o percentual de progresso da onda e a quantidade do turno seguinte.
 - **Liberação gradual de defesas:** o turno 1 de cada mapa começa com apenas 2 defesas (Lanterna e Caldeirão); uma nova é liberada a cada turno concluído (ordem: Morcego, Vela benta, Gato mágico, Cristal gélido, Caçador, Lápide, Bruxa; todas disponíveis no turno 8). A nova defesa é anunciada no banner e na mensagem de fim de turno. Defesas bloqueadas aparecem com 🔒 e o turno de liberação.
 - **Reparo individual:** clique em uma defesa no mapa (sem ter uma defesa da loja selecionada) para ver sua vida e o botão "Reparar" com o custo (0,5 moeda por ponto de vida); só entre turnos. O reparo geral continua disponível.
 - **Pesquisa de evoluções:** painel "Pesquisa" na lateral lista as defesas já liberadas. Cada tipo tem até 3 níveis (custo = preço × 1,5 × (nível-1) para o nível desejado, ou seja, 1,5× o preço no nível 2 e 3× no nível 3); o custo é pago na hora e a evolução vale **somente a partir do início do turno seguinte**, para todas as defesas do tipo (já colocadas e futuras): +30% de dano (ou cura), +25% de vida e +0,25 de alcance por nível. Defesas evoluídas mostram ★ no mapa. A pesquisa é reiniciada junto com a partida.
+- **Tutorial:** na primeira visita (flag `tower-defense-feriados-tutorial-v1` no `localStorage`) abre uma janela "Como jogar"; o botão **Tutorial** no cabeçalho a reabre a qualquer momento.
+- **Cancelar seleção:** com uma defesa da loja selecionada aparece o botão "Cancelar seleção"; a tecla **Esc** também cancela (e fecha o tutorial ou o painel de reparo).
 - **Compras durante o turno:** defesas podem ser compradas e posicionadas a
   qualquer momento, inclusive com os invasores em campo (reparo continua só
   entre turnos). Começa-se com 550 moedas.
