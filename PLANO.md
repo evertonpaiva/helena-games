@@ -105,3 +105,17 @@ estado desta sequência ao concluir ou alterar uma etapa.
 7. **Rodada tutorial/cancelar:** modal de tutorial automático na 1ª visita + botão no cabeçalho, botão/tecla Esc para cancelar seleção de defesa, fundo do selo "Jogo local". Aguardando validação.
 8. **Rodada áudio/otimização:** agendador musical resistente a travamentos (`LOOKAHEAD`, Worker em `startScheduler`) e `build.sh` para gerar `dist/` minificado. Aguardando validação em celular.
 9. **Rodada layout mobile:** loja fixa e compacta no rodapé, tabuleiro menor (bloco `@media (max-width: 850px)` ao fim de `styles.css`). Aguardando validação em celular.
+10. **Rodada animações de combate e status:**
+    - Recuo e pulso de disparo nas defesas ao atacar (`recoil` + brilho no topo).
+    - Investida (*lunge*) de ataque dos invasores ao atacar defesas.
+    - Reação de dano no invasor (*flinch / damage flash*) ao ser atingido.
+    - Onda de choque expansiva (*shockwave ring*) para dano em área (*splash*), acertos críticos e meteoro.
+    - Pulso de cura / reparo esmeralda ao reparar defesas ou usar cura.
+    - Brilho de evolução estelar ao pesquisar e aprimorar nível das defesas.
+    - Tremor de alerta e brilho pulsar para defesas em estado crítico (< 40% vida).
+    - Animações vivas de status: chamas oscilantes (`burn`), pulsação ácida (`poison`), lentidão gélida (`slow`), tremor de desarme (`disarm`) e brilho do cubo de gelo (`freeze`).
+    - Animações de habilidades especiais: chuva de meteoros cruzando o céu, vinheta de nevasca no congelamento geral e aura esmeralda na cura geral.
+11. **Rodada correções pedras, voadores e splash:**
+    - Limpeza de enfeites ao explodir pedra: casas onde pedras foram destruídas passam a integrar `blastedRocks` e nunca recebem decorações abaixo.
+    - Rota direta dos voadores até a saída: inimigos voadores seguem trajetória aérea direta da porta de entrada (`PATH[0]`) até a porta de saída do mapa (`PATH.at(-1)`), marcada também com `🚪`.
+    - Fila sequencial de splash screens: múltiplos anúncios de fim de turno (nova defesa, pesquisa e conquistas) são apresentados sequencialmente em telas paginadas com botão "Próximo (X/Y) ➔" e rolagem protegida.

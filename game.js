@@ -337,6 +337,7 @@ const PATH = [];
 const SKY = [];
 const pathSet = new Set();
 const rockSet = new Set();
+const blastedRocks = new Set();
 let mapSeed = 0;
 
 // Rota em escada: trechos horizontais ligados por trechos verticais em colunas
@@ -373,17 +374,47 @@ function rebuildPathSet() {
   for (const cell of PATH) pathSet.add(cell);
 }
 
-// Rota única; voadores seguem uma linha reta (SKY) por cima de tudo.
+// Rota aérea: voadores voam em linha direta até a porta de saída do mapa (PATH.at(-1)).
+function buildFlyerRoute(fromCell = PATH[0], toCell = PATH.at(-1)) {
+  const x0 = fromCell % COLUMNS;
+  const y0 = Math.floor(fromCell / COLUMNS);
+  const x1 = toCell % COLUMNS;
+  const y1 = Math.floor(toCell / COLUMNS);
+  const points = [];
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  let x = x0;
+  let y = y0;
+  while (true) {
+    points.push(y * COLUMNS + x);
+    if (x === x1 && y === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y += sy;
+    }
+  }
+  return points;
+}
+
+// Rota única; voadores cortam o mapa em linha direta com destino à porta de saída.
 function generatePath() {
   const previous = PATH.join(",");
   let route;
   do route = buildRoute(); while (route.length < 18 || route.length > 36 || route.join(",") === previous);
   PATH.splice(0, PATH.length, ...route);
-  const skyRow = Math.floor(Math.random() * ROWS);
-  SKY.splice(0, SKY.length, ...Array.from({ length: COLUMNS }, (_, column) => skyRow * COLUMNS + column));
   rebuildPathSet();
+  SKY.splice(0, SKY.length, ...buildFlyerRoute(PATH[0], PATH.at(-1)));
   mapSeed = Math.floor(Math.random() * 1e6);
   placeRocks();
+  blastedRocks.clear();
 }
 
 // Pedras ficam em casas vizinhas ao caminho (inclusive diagonais) e bloqueiam construção.
@@ -458,7 +489,7 @@ const abilityBar = document.querySelector("#ability-bar");
 const speedButton = document.querySelector("#speed-button");
 const splashOverlay = document.querySelector("#splash");
 const splashSections = [];
-const splashShown = [];
+let currentSplashIndex = 0;
 const splashAchievements = [];
 const inspectorElement = document.querySelector("#tower-inspector");
 let researchSignature = "";
@@ -495,7 +526,7 @@ function waveComposition(wave) {
 }
 
 function decorFor(cell) {
-  if (pathSet.has(cell) || rockSet.has(cell)) return "";
+  if (pathSet.has(cell) || rockSet.has(cell) || blastedRocks.has(cell)) return "";
   if (DECOR_LANDMARKS[cell]) return DECOR_LANDMARKS[cell];
   const hash = Math.imul(cell + 7 + mapSeed * 97, 2654435761) >>> 0;
   return hash % 100 < 28 ? DECOR[(hash >>> 8) % DECOR.length] : "";
@@ -730,13 +761,23 @@ function renderBoard() {
         : isRock
           ? `<span class="rock-item" aria-hidden="true">🪨</span>`
           : isPath
-          ? `<span class="tile-emoji path-marker" aria-hidden="true">${cell === start ? "🚪" : cell === end ? "🕸️" : ""}</span>`
+          ? `<span class="tile-emoji path-marker" aria-hidden="true">${cell === start ? "🚪" : cell === end ? "🚪" : ""}</span>`
           : decor
             ? `<span class="decor decor-${decorKind(decor)}" aria-hidden="true">${decor}</span>`
             : bonus
               ? `<span class="bonus-item ${bonus.life <= 5 ? "is-expiring" : ""}" data-bonus-id="${bonus.id}" role="img" aria-label="${bonus.name}: clique para ganhar ${bonus.value} moedas">${bonus.emoji}<span class="bonus-ring"></span></span>`
               : "";
-    const label = tower ? `${tower.name} nível ${tower.level}, casa ${cell + 1}, vida ${tower.hp} de ${tower.maxHp}` : isPath ? "Caminho" : isRock ? "Pedra: não é possível construir" : `Espaço livre ${cell + 1}`;
+    const label = tower
+      ? `${tower.name} nível ${tower.level}, casa ${cell + 1}, vida ${tower.hp} de ${tower.maxHp}`
+      : cell === start
+        ? "Porta de entrada dos invasores"
+        : cell === end
+          ? "Porta de saída dos invasores"
+          : isPath
+            ? "Caminho"
+            : isRock
+              ? "Pedra: não é possível construir"
+              : `Espaço livre ${cell + 1}`;
     return `<button class="${classes.join(" ")}" type="button" role="gridcell" data-cell="${cell}" aria-label="${label}">${icon}${flyerMarkup}</button>`;
   }).join("");
 
@@ -880,6 +921,130 @@ function showFloatingText(cell, text, className) {
   );
 }
 
+function showShockwave(cell, color = "#ff9a54", maxRadius = 55) {
+  const center = cellCenter(cell);
+  if (!center) return;
+  const ring = document.createElement("span");
+  ring.className = "shockwave-ring";
+  ring.style.setProperty("--shock-color", color);
+  ring.style.left = `${center.x}px`;
+  ring.style.top = `${center.y}px`;
+  effectsLayer.append(ring);
+  animateEffect(
+    ring,
+    [
+      { width: "8px", height: "8px", opacity: 0.95, borderWidth: "4px" },
+      { width: `${maxRadius * 2}px`, height: `${maxRadius * 2}px`, opacity: 0, borderWidth: "1px" },
+    ],
+    { duration: 380, easing: "cubic-bezier(.1,.7,.2,1)" }
+  );
+}
+
+function showHealPulse(cell) {
+  const center = cellCenter(cell);
+  if (!center) return;
+  const ring = document.createElement("span");
+  ring.className = "heal-pulse";
+  ring.style.left = `${center.x}px`;
+  ring.style.top = `${center.y}px`;
+  effectsLayer.append(ring);
+  animateEffect(
+    ring,
+    [
+      { transform: "translate(-50%, -50%) scale(0.25)", opacity: 0.95, filter: "brightness(1.5)" },
+      { transform: "translate(-50%, -50%) scale(1.6)", opacity: 0, filter: "brightness(1)" },
+    ],
+    { duration: 460, easing: "ease-out" }
+  );
+  const tile = board.querySelector(`[data-cell="${cell}"]`);
+  const tower = tile?.querySelector(".tower-entity");
+  if (tower) {
+    tower.animate(
+      [
+        { transform: "scale(1)", filter: "none" },
+        { transform: "scale(1.12)", filter: "drop-shadow(0 0 14px #52ffa8) brightness(1.35)", offset: 0.35 },
+        { transform: "scale(1)", filter: "none" },
+      ],
+      { duration: 420, easing: "cubic-bezier(.2,.8,.3,1)" }
+    );
+  }
+}
+
+function showUpgradePulse(cell) {
+  const center = cellCenter(cell);
+  if (!center) return;
+  showShockwave(cell, "#ffd700", 50);
+  showImpact(cell, "#ffd700", 2);
+  const tile = board.querySelector(`[data-cell="${cell}"]`);
+  const tower = tile?.querySelector(".tower-entity");
+  if (tower) {
+    tower.animate(
+      [
+        { transform: "scale(1)", filter: "none" },
+        { transform: "scale(1.22) translateY(-4px)", filter: "drop-shadow(0 0 16px #ffd700) brightness(1.4)", offset: 0.4 },
+        { transform: "scale(1)", filter: "none" },
+      ],
+      { duration: 520, easing: "cubic-bezier(.2,.8,.3,1)" }
+    );
+  }
+}
+
+function showMeteorRain() {
+  if (reduceMotion.matches) return;
+  const count = 4;
+  for (let i = 0; i < count; i += 1) {
+    window.setTimeout(() => {
+      const meteor = document.createElement("span");
+      meteor.className = "meteor-streak";
+      const startX = 40 + Math.random() * (board.offsetWidth - 80);
+      meteor.style.left = `${startX}px`;
+      meteor.style.top = "-30px";
+      meteor.textContent = "☄️";
+      effectsLayer.append(meteor);
+      animateEffect(
+        meteor,
+        [
+          { transform: "translate(-50%, -50%) scale(0.6) rotate(45deg)", opacity: 1 },
+          { transform: `translate(calc(-50% + ${(Math.random() - 0.5) * 80 + 70}px), calc(-50% + ${board.offsetHeight * 0.75}px)) scale(1.6) rotate(45deg)`, opacity: 0 },
+        ],
+        { duration: 380, easing: "cubic-bezier(.1,.7,.4,1)" }
+      );
+    }, i * 65);
+  }
+}
+
+function showBlizzardFlash() {
+  if (reduceMotion.matches) return;
+  const flash = document.createElement("div");
+  flash.className = "blizzard-flash";
+  effectsLayer.append(flash);
+  animateEffect(
+    flash,
+    [
+      { opacity: 0 },
+      { opacity: 0.85, offset: 0.25 },
+      { opacity: 0 },
+    ],
+    { duration: 520, easing: "ease-out" }
+  );
+}
+
+function showHealAura() {
+  if (reduceMotion.matches) return;
+  const aura = document.createElement("div");
+  aura.className = "heal-aura-flash";
+  effectsLayer.append(aura);
+  animateEffect(
+    aura,
+    [
+      { opacity: 0 },
+      { opacity: 0.75, offset: 0.3 },
+      { opacity: 0 },
+    ],
+    { duration: 480, easing: "ease-out" }
+  );
+}
+
 function flushCombatEffects() {
   const effects = game.effects.splice(0);
   if (reduceMotion.matches) return;
@@ -891,11 +1056,29 @@ function flushCombatEffects() {
     if (effect.type === "towerDestroyed") {
       showDestruction(effect.cell, effect.emoji, true);
       showImpact(effect.cell, "#ff5a3c", 2.6);
+      showShockwave(effect.cell, "#ff5a3c", 65);
       showFloatingText(effect.cell, "Destruída!", "text-destroyed");
       continue;
     }
     if (effect.type === "impact") {
       showImpact(effect.cell, effect.color, 2.2);
+      continue;
+    }
+    if (effect.type === "shockwave") {
+      showShockwave(effect.cell, effect.color, effect.radius);
+      continue;
+    }
+    if (effect.type === "heal") {
+      showHealPulse(effect.cell);
+      continue;
+    }
+    if (effect.type === "upgrade") {
+      showUpgradePulse(effect.cell);
+      continue;
+    }
+    if (effect.type === "critical") {
+      showShockwave(effect.cell, effect.color || "#ffd700", 50);
+      showImpact(effect.cell, "#ffd700", 2.2);
       continue;
     }
     if (effect.type === "note") {
@@ -912,6 +1095,54 @@ function flushCombatEffects() {
     const start = cellCenter(effect.from);
     const end = cellCenter(effect.to);
     if (!start || !end) continue;
+
+    // Recoil on shooter tower or lunge on attacking enemy
+    if (!effect.enemyShot) {
+      const shooterTile = board.querySelector(`[data-cell="${effect.from}"]`);
+      const shooterEntity = shooterTile?.querySelector(".tower-entity");
+      if (shooterEntity) {
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+        const recoilX = -Math.cos(angle) * 5;
+        const recoilY = -Math.sin(angle) * 5;
+        shooterEntity.animate(
+          [
+            { transform: "translate(0, 0) scale(1)" },
+            { transform: `translate(${recoilX}px, ${recoilY}px) scale(0.92, 1.08)`, offset: 0.2 },
+            { transform: `translate(${-recoilX * 0.4}px, ${-recoilY * 0.4}px) scale(1.04, 0.96)`, offset: 0.6 },
+            { transform: "translate(0, 0) scale(1)" },
+          ],
+          { duration: 220, easing: "cubic-bezier(.2,.8,.3,1)" }
+        );
+        const glint = shooterEntity.querySelector(".tower-glint");
+        if (glint) {
+          glint.animate(
+            [
+              { transform: "scale(1)", opacity: 1 },
+              { transform: "scale(2.6)", opacity: 1, filter: "brightness(2.4)" },
+              { transform: "scale(1)", opacity: 0.8 },
+            ],
+            { duration: 200, easing: "ease-out" }
+          );
+        }
+      }
+    } else {
+      const enemyTile = board.querySelector(`[data-cell="${effect.from}"]`);
+      const enemyEntity = enemyTile?.querySelector(".enemy-entity");
+      if (enemyEntity) {
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+        const lungeX = Math.cos(angle) * 6;
+        const lungeY = Math.sin(angle) * 6;
+        enemyEntity.animate(
+          [
+            { transform: "translate(0, 0) scale(1)" },
+            { transform: `translate(${lungeX}px, ${lungeY}px) scale(1.15)`, offset: 0.35 },
+            { transform: "translate(0, 0) scale(1)" },
+          ],
+          { duration: 220, easing: "cubic-bezier(.2,.8,.3,1)" }
+        );
+      }
+    }
+
     const projectile = document.createElement("span");
     projectile.className = `projectile ${effect.enemyShot ? "enemy-shot" : ""}`;
     projectile.style.setProperty("--glow", effect.color);
@@ -928,7 +1159,30 @@ function flushCombatEffects() {
       ],
       { duration: 260, easing: "cubic-bezier(.2,.65,.3,1)" }
     );
-    if (!effect.enemyShot) window.setTimeout(() => showImpact(effect.to, effect.color, effect.splash ? 2.4 : 1.5), 235);
+    if (!effect.enemyShot) {
+      window.setTimeout(() => {
+        showImpact(effect.to, effect.color, effect.splash ? 2.4 : 1.5);
+        if (effect.splash) {
+          showShockwave(effect.to, effect.color, 60);
+        }
+        // Flinch on target enemies
+        const targetTile = board.querySelector(`[data-cell="${effect.to}"]`);
+        const enemies = targetTile?.querySelectorAll(".enemy-entity");
+        if (enemies) {
+          for (const enemyEl of enemies) {
+            enemyEl.animate(
+              [
+                { transform: "scale(1)", filter: "none" },
+                { transform: "scale(0.86, 1.15) translateY(-3px)", filter: "brightness(2.2) drop-shadow(0 0 8px #ff4b3b)", offset: 0.25 },
+                { transform: "scale(1.08, 0.94)", filter: "brightness(1.4)", offset: 0.6 },
+                { transform: "scale(1)", filter: "none" },
+              ],
+              { duration: 240, easing: "cubic-bezier(.2,.8,.3,1)" }
+            );
+          }
+        }
+      }, 235);
+    }
   }
 }
 
@@ -1107,6 +1361,8 @@ function applyResearch() {
       const stats = levelStats(TOWERS[type], level);
       tower.hp += stats.hp - tower.maxHp;
       Object.assign(tower, stats, { maxHp: stats.hp, level });
+      addCombatEffect({ type: "upgrade", cell: tower.cell });
+      addCombatEffect({ type: "note", cell: tower.cell, text: "★ Evoluiu!", className: "text-upgrade" });
     }
   }
   game.pendingResearch = {};
@@ -1156,6 +1412,8 @@ function repairTower(tower) {
   game.coins -= Math.ceil(points * REPAIR_COST_PER_HP);
   GameAudio.play("repair");
   game.message = points < missing ? `${tower.name}: reparo parcial, faltaram moedas.` : `${tower.name} reparada!`;
+  addCombatEffect({ type: "heal", cell: tower.cell });
+  addCombatEffect({ type: "note", cell: tower.cell, text: `+${points} ❤`, className: "text-heal" });
   render();
 }
 
@@ -1167,12 +1425,45 @@ function unlockAchievement(id) {
   saveProgress();
   splashAchievements.push({ emoji: item.icon, name: item.name, desc: item.desc });
   renderAchievements();
-  // Durante o turno as conquistas esperam o fim dele para aparecer no splash.
-  if (!game || game.phase !== "wave") window.setTimeout(flushSplash, 0);
+  // Durante o turno ou enquanto os parabéns de vitória estiverem na tela, aguarda:
+  const congratsEl = document.querySelector("#congrats");
+  if (!game || (game.phase !== "wave" && (!congratsEl || congratsEl.hidden))) {
+    window.setTimeout(flushSplash, 0);
+  }
 }
 
 function queueSplash(section) {
-  if (section.items.length) splashSections.push(section);
+  if (section && section.items && section.items.length) splashSections.push(section);
+}
+
+function showCurrentSplash() {
+  if (currentSplashIndex >= splashSections.length) {
+    closeSplash();
+    return;
+  }
+  const section = splashSections[currentSplashIndex];
+  const total = splashSections.length;
+  const isLast = currentSplashIndex === total - 1;
+
+  const titleEl = document.querySelector("#splash-title");
+  const bodyEl = document.querySelector("#splash-body");
+  const closeBtn = document.querySelector("#splash-close");
+
+  titleEl.innerHTML = `${section.icon} ${section.title}`;
+  bodyEl.innerHTML = `
+    <section class="splash-section">
+      <ul>${section.items.map((item) => `<li><span class="splash-emoji">${item.emoji}</span><span><strong>${item.name}</strong><small>${item.desc}</small></span></li>`).join("")}</ul>
+    </section>`;
+
+  if (total > 1) {
+    closeBtn.textContent = isLast ? `Continuar (${currentSplashIndex + 1}/${total})` : `Próximo (${currentSplashIndex + 1}/${total}) ➔`;
+  } else {
+    closeBtn.textContent = "Continuar";
+  }
+
+  splashOverlay.hidden = false;
+  GameAudio.play("bonus");
+  closeBtn.focus();
 }
 
 function flushSplash() {
@@ -1180,20 +1471,25 @@ function flushSplash() {
     queueSplash({ icon: "🏆", title: "Conquista alcançada!", items: splashAchievements.splice(0) });
   }
   if (!splashSections.length) return;
-  splashShown.push(...splashSections.splice(0));
-  document.querySelector("#splash-body").innerHTML = splashShown.map((section) => `
-    <section class="splash-section">
-      <h3>${section.icon} ${section.title}</h3>
-      <ul>${section.items.map((item) => `<li><span class="splash-emoji">${item.emoji}</span><span><strong>${item.name}</strong><small>${item.desc}</small></span></li>`).join("")}</ul>
-    </section>`).join("");
-  splashOverlay.hidden = false;
-  GameAudio.play("bonus");
-  document.querySelector("#splash-close").focus();
+  if (!splashOverlay.hidden) return;
+  currentSplashIndex = 0;
+  showCurrentSplash();
+}
+
+function nextOrCloseSplash() {
+  currentSplashIndex += 1;
+  if (currentSplashIndex < splashSections.length) {
+    showCurrentSplash();
+  } else {
+    closeSplash();
+  }
 }
 
 function closeSplash() {
   splashOverlay.hidden = true;
-  splashShown.length = 0;
+  splashSections.length = 0;
+  currentSplashIndex = 0;
+  if (splashAchievements.length) flushSplash();
 }
 
 function renderAchievements() {
@@ -1215,20 +1511,25 @@ function useAbility(key) {
   const level = levelOf(game.wave);
   if (key === "meteor") {
     const damage = 30 + level * 7;
+    showMeteorRain();
     for (const enemy of game.enemies) {
       enemy.hp -= damage;
       addCombatEffect({ type: "impact", cell: cellOf(enemy), color: "#ff7a3c" });
+      addCombatEffect({ type: "shockwave", cell: cellOf(enemy), color: "#ff4500", radius: 45 });
     }
     GameAudio.play("towerDestroyed", null, 0.05);
     collectDefeated();
   } else if (key === "freeze") {
+    showBlizzardFlash();
     for (const enemy of game.enemies) applyStatus(enemy, { status: "freeze", ticks: 4 });
     GameAudio.play("status", "freeze");
   } else {
+    showHealAura();
     for (const tower of game.towers) {
       const amount = Math.min(Math.ceil(tower.maxHp * 0.4), tower.maxHp - tower.hp);
       if (amount > 0) {
         tower.hp += amount;
+        addCombatEffect({ type: "heal", cell: tower.cell });
         addCombatEffect({ type: "note", cell: tower.cell, text: `+${amount} ❤`, className: "text-heal" });
       }
     }
@@ -1317,6 +1618,7 @@ function persistGame() {
       path: PATH,
       sky: SKY,
       rocks: [...rockSet],
+      blastedRocks: [...blastedRocks],
       mapSeed,
       wave: game.wave,
       phase: game.phase,
@@ -1355,8 +1657,15 @@ function restoreGame() {
     PATH.splice(0, PATH.length, ...data.path);
     SKY.splice(0, SKY.length, ...data.sky);
     rebuildPathSet();
+    if (!SKY.length || SKY.at(-1) !== PATH.at(-1)) {
+      SKY.splice(0, SKY.length, ...buildFlyerRoute(PATH[0], PATH.at(-1)));
+    }
     rockSet.clear();
     for (const cell of data.rocks) rockSet.add(cell);
+    blastedRocks.clear();
+    if (Array.isArray(data.blastedRocks)) {
+      for (const cell of data.blastedRocks) blastedRocks.add(cell);
+    }
     mapSeed = Number.isFinite(data.mapSeed) ? data.mapSeed : 0;
     if (game && game.interval) window.clearInterval(game.interval);
     game = createGame();
@@ -1405,6 +1714,8 @@ function repairTowers() {
     tower.hp += points;
     budget -= points;
     spent += points * REPAIR_COST_PER_HP;
+    addCombatEffect({ type: "heal", cell: tower.cell });
+    addCombatEffect({ type: "note", cell: tower.cell, text: `+${points} ❤`, className: "text-heal" });
     if (budget <= 0) break;
   }
   game.coins -= Math.ceil(spent);
@@ -1534,6 +1845,7 @@ function blastRock(cell) {
   }
   game.coins -= ROCK_BLAST_COST;
   rockSet.delete(cell);
+  blastedRocks.add(cell);
   game.message = `💥 Pedra explodida por ${ROCK_BLAST_COST} moedas! O espaço está livre para construir.`;
   GameAudio.play("explosion");
   render();
@@ -1691,9 +2003,14 @@ function hitEnemy(enemy, tower, factor, primary) {
   if (critical) damage *= 2;
   enemy.hp -= Math.round(damage);
   const cell = cellOf(enemy);
-  if (critical) addCombatEffect({ type: "note", cell, text: "Crítico!", className: "text-crit" });
-  else if (primary && modifier > 1) addCombatEffect({ type: "note", cell, text: "Fraco!", className: "text-weak" });
-  else if (primary && modifier < 1) addCombatEffect({ type: "note", cell, text: "Resiste", className: "text-note" });
+  if (critical) {
+    addCombatEffect({ type: "note", cell, text: "Crítico!", className: "text-crit" });
+    addCombatEffect({ type: "critical", cell, color: "#ffd700" });
+  } else if (primary && modifier > 1) {
+    addCombatEffect({ type: "note", cell, text: "Fraco!", className: "text-weak" });
+  } else if (primary && modifier < 1) {
+    addCombatEffect({ type: "note", cell, text: "Resiste", className: "text-note" });
+  }
   for (const effect of tower.effects) applyStatus(enemy, effect);
 }
 
@@ -1885,6 +2202,7 @@ function towersSupport() {
     for (const other of wounded) {
       const amount = Math.min(tower.heal.amount, other.maxHp - other.hp);
       other.hp += amount;
+      addCombatEffect({ type: "heal", cell: other.cell });
       addCombatEffect({ type: "note", cell: other.cell, text: `+${amount} ❤`, className: "text-heal" });
     }
     addCombatEffect({ type: "shot", from: tower.cell, to: wounded[0].cell, glyph: "✚", color: tower.color });
@@ -2274,7 +2592,10 @@ for (let cell = 0; cell < COLUMNS * ROWS; cell += 1) {
   board.append(tile);
 }
 
-document.addEventListener("pointerdown", () => GameAudio.unlock(), { passive: true });
+const unlockAudio = () => GameAudio.unlock();
+document.addEventListener("pointerdown", unlockAudio, { passive: true });
+document.addEventListener("keydown", unlockAudio, { passive: true });
+document.addEventListener("touchstart", unlockAudio, { passive: true });
 
 board.addEventListener("pointerdown", (event) => {
   const bonus = event.target.closest("[data-bonus-id]");
@@ -2335,7 +2656,7 @@ board.addEventListener("mouseleave", () => {
 });
 const achievementsOverlay = document.querySelector("#achievements");
 document.querySelector("#achievements-button").addEventListener("click", () => { achievementsOverlay.hidden = false; });
-document.querySelector("#splash-close").addEventListener("click", closeSplash);
+document.querySelector("#splash-close").addEventListener("click", nextOrCloseSplash);
 document.querySelector("#achievements-close").addEventListener("click", () => { achievementsOverlay.hidden = true; });
 document.querySelector(".difficulty-picker").addEventListener("click", (event) => {
   const button = event.target.closest("[data-difficulty]");
@@ -2351,7 +2672,10 @@ researchListElement.addEventListener("click", (event) => {
 });
 document.querySelector("#congrats-share").addEventListener("click", shareResult);
 document.querySelector("#achievements-share").addEventListener("click", shareAchievements);
-document.querySelector("#congrats-close").addEventListener("click", () => { document.querySelector("#congrats").hidden = true; });
+document.querySelector("#congrats-close").addEventListener("click", () => {
+  document.querySelector("#congrats").hidden = true;
+  flushSplash();
+});
 turnButton.addEventListener("click", requestWave);
 pauseButton.addEventListener("click", () => setPaused(!game.paused));
 document.querySelector("#resume-button").addEventListener("click", () => setPaused(false));
@@ -2384,7 +2708,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (!buildMenu.hidden) { closeBuildMenu(); return; }
     if (!achievementsOverlay.hidden) achievementsOverlay.hidden = true;
-    else if (!splashOverlay.hidden) closeSplash();
+    else if (!splashOverlay.hidden) nextOrCloseSplash();
     else if (!tutorialOverlay.hidden) closeTutorial();
     else if (game.selectedTower) cancelSelection();
     else if (game.inspected !== null) {
@@ -2412,6 +2736,9 @@ volumeSlider.addEventListener("input", () => {
 volumeSlider.addEventListener("change", () => GameAudio.play("select"));
 musicButton.addEventListener("click", toggleMusic);
 sfxButton.addEventListener("click", toggleSfx);
+if (GameAudio.isMusicEnabled()) {
+  GameAudio.unlock();
+}
 applyTheme(progress.lastTheme);
 renderAchievements();
 if (!restoreGame()) resetGame(storageNotice || "Posicione suas defesas e inicie o primeiro turno.");

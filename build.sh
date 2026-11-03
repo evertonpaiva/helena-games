@@ -14,10 +14,23 @@ fi
 rm -rf "$SAIDA"
 mkdir -p "$SAIDA"
 
+TERSER_CMD="npx --yes terser"
+if command -v terser >/dev/null 2>&1; then
+  TERSER_CMD="terser"
+fi
+
+CLEANCSS_CMD="npx --yes clean-css-cli"
+CLEANCSS_LOCAL="$(find "$HOME/.npm/_npx" -name cleancss -type f -perm -u+x 2>/dev/null | head -n 1 || true)"
+if command -v cleancss >/dev/null 2>&1; then
+  CLEANCSS_CMD="cleancss"
+elif [ -n "$CLEANCSS_LOCAL" ] && [ -x "$CLEANCSS_LOCAL" ]; then
+  CLEANCSS_CMD="$CLEANCSS_LOCAL"
+fi
+
 for arquivo in audio.js game.js; do
-  npx --yes terser "$RAIZ/$arquivo" --compress passes=2 --mangle --output "$SAIDA/$arquivo"
+  $TERSER_CMD "$RAIZ/$arquivo" --compress passes=2 --mangle --output "$SAIDA/$arquivo"
 done
-npx --yes clean-css-cli -O2 -o "$SAIDA/styles.css" "$RAIZ/styles.css"
+$CLEANCSS_CMD -O2 -o "$SAIDA/styles.css" "$RAIZ/styles.css"
 
 # HTML: remove comentários e espaços entre as tags
 python3 - "$RAIZ/index.html" "$SAIDA/index.html" <<'PY'

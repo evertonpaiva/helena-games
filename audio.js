@@ -110,7 +110,19 @@ const GameAudio = (() => {
   let musicBus;
   let sfxBus;
   let noiseBuffer;
-  let musicEnabled = false;
+  const MUSIC_KEY = "tower-defense-feriados-music-v1";
+
+  function loadMusicEnabled() {
+    try {
+      const saved = localStorage.getItem(MUSIC_KEY);
+      if (saved !== null) return saved === "true";
+    } catch (error) {
+      console.error("Não foi possível ler a preferência de música salva.", error);
+    }
+    return true;
+  }
+
+  let musicEnabled = loadMusicEnabled();
   const VOLUME_KEY = "tower-defense-feriados-volume-v1";
   const MAX_MASTER_GAIN = 2.6;
   let volume = loadVolume();
@@ -151,9 +163,36 @@ const GameAudio = (() => {
     }
   }
 
+  function startMusicScheduler() {
+    if (!musicEnabled || schedulerTimer || schedulerWorker) return;
+    step = 0;
+    bar = -1;
+    if (context) {
+      nextStepTime = context.currentTime + 0.05;
+    }
+    tick();
+    startScheduler();
+  }
+
   function unlock() {
     if (context) {
-      if (context.state === "suspended" && !paused) context.resume().catch((error) => console.error("Não foi possível retomar o áudio.", error));
+      if (context.state === "suspended" && !paused) {
+        context.resume().then(() => {
+          if (musicEnabled) {
+            if (musicBus) {
+              musicBus.gain.cancelScheduledValues(context.currentTime);
+              musicBus.gain.setTargetAtTime(0.9, context.currentTime, 0.2);
+            }
+            startMusicScheduler();
+          }
+        }).catch((error) => console.error("Não foi possível retomar o áudio.", error));
+      } else if (musicEnabled && context.state === "running") {
+        if (musicBus) {
+          musicBus.gain.cancelScheduledValues(context.currentTime);
+          musicBus.gain.setTargetAtTime(0.9, context.currentTime, 0.2);
+        }
+        startMusicScheduler();
+      }
       return true;
     }
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -167,7 +206,7 @@ const GameAudio = (() => {
     compressor.connect(context.destination);
 
     musicBus = context.createGain();
-    musicBus.gain.value = 0;
+    musicBus.gain.value = musicEnabled ? 0.9 : 0;
     musicBus.connect(masterGain);
     sfxBus = context.createGain();
     sfxBus.gain.value = sfxEnabled ? 0.9 : 0;
@@ -193,7 +232,17 @@ const GameAudio = (() => {
     const samples = noiseBuffer.getChannelData(0);
     for (let index = 0; index < samples.length; index += 1) samples[index] = Math.random() * 2 - 1;
 
-    if (context.state === "suspended" && !paused) context.resume().catch((error) => console.error("Não foi possível iniciar o áudio.", error));
+    const onRunning = () => {
+      if (musicEnabled) {
+        startMusicScheduler();
+      }
+    };
+
+    if (context.state === "suspended" && !paused) {
+      context.resume().then(onRunning).catch((error) => console.error("Não foi possível iniciar o áudio.", error));
+    } else if (context.state === "running") {
+      onRunning();
+    }
     return true;
   }
 
@@ -354,7 +403,7 @@ const GameAudio = (() => {
   const TICK_INTERVAL_MS = 100;
 
   function tick() {
-    if (!context || !musicEnabled) return;
+    if (!context || !musicEnabled || context.state !== "running") return;
     if (nextStepTime < context.currentTime - LOOKAHEAD) nextStepTime = context.currentTime + 0.05;
     while (nextStepTime < context.currentTime + LOOKAHEAD) {
       scheduleStep(nextStepTime);
@@ -384,17 +433,20 @@ const GameAudio = (() => {
   }
 
   function setMusic(enabled) {
+    try {
+      localStorage.setItem(MUSIC_KEY, String(enabled));
+    } catch (error) {
+      console.error("Não foi possível salvar a preferência de música.", error);
+    }
     if (enabled && !unlock()) return false;
     if (enabled) {
       musicEnabled = true;
-      musicBus.gain.cancelScheduledValues(context.currentTime);
-      musicBus.gain.setTargetAtTime(0.9, context.currentTime, 0.2);
-      if (!schedulerTimer && !schedulerWorker) {
-        step = 0;
-        bar = -1;
-        nextStepTime = context.currentTime + 0.05;
-        tick();
-        startScheduler();
+      if (context) {
+        musicBus.gain.cancelScheduledValues(context.currentTime);
+        musicBus.gain.setTargetAtTime(0.9, context.currentTime, 0.2);
+        if (context.state === "running") {
+          startMusicScheduler();
+        }
       }
     } else {
       musicEnabled = false;
