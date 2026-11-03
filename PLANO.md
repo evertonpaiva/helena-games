@@ -119,3 +119,4 @@ estado desta sequência ao concluir ou alterar uma etapa.
     - Limpeza de enfeites ao explodir pedra: casas onde pedras foram destruídas passam a integrar `blastedRocks` e nunca recebem decorações abaixo.
     - Rota direta dos voadores até a saída: inimigos voadores seguem trajetória aérea direta da porta de entrada (`PATH[0]`) até a porta de saída do mapa (`PATH.at(-1)`), marcada também com `🚪`.
     - Fila sequencial de splash screens: múltiplos anúncios de fim de turno (nova defesa, pesquisa e conquistas) são apresentados sequencialmente em telas paginadas com botão "Próximo (X/Y) ➔" e rolagem protegida.
+    - Bloqueio de desligamento da tela (Wake Lock): uso da Screen Wake Lock API no mobile e desktop durante a partida e no retorno à aba (`visibilitychange`), impedindo o apagamento da tela por inatividade.

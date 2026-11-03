@@ -1902,6 +1902,7 @@ function placeTower(cell) {
 
 function beginWave() {
   if (game.phase !== "preparation" && game.phase !== "intermission") return;
+  requestWakeLock();
   game.wave += 1;
   game.phase = "wave";
   game.waveTotal = waveSize(game.wave);
@@ -2592,10 +2593,44 @@ for (let cell = 0; cell < COLUMNS * ROWS; cell += 1) {
   board.append(tile);
 }
 
-const unlockAudio = () => GameAudio.unlock();
-document.addEventListener("pointerdown", unlockAudio, { passive: true });
-document.addEventListener("keydown", unlockAudio, { passive: true });
-document.addEventListener("touchstart", unlockAudio, { passive: true });
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  try {
+    if (!wakeLock || wakeLock.released) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => {
+        wakeLock = null;
+      });
+    }
+  } catch (error) {
+    // Falha silenciosa caso o sistema restrinja (ex: bateria em modo de economia extremo)
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock && !wakeLock.released) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    requestWakeLock();
+  } else {
+    releaseWakeLock();
+  }
+});
+
+const onUserInteraction = () => {
+  GameAudio.unlock();
+  requestWakeLock();
+};
+document.addEventListener("pointerdown", onUserInteraction, { passive: true });
+document.addEventListener("keydown", onUserInteraction, { passive: true });
+document.addEventListener("touchstart", onUserInteraction, { passive: true });
 
 board.addEventListener("pointerdown", (event) => {
   const bonus = event.target.closest("[data-bonus-id]");
